@@ -44,9 +44,11 @@ async def get_upload(upload_id: str):
     row = queries.get_upload(upload_id)
     if not row:
         raise HTTPException(status_code=404, detail="Upload not found")
+    video_url = storage_service.get_signed_url(row["bucket"], row["path"])
     return UploadResponse(
         upload_id=row["id"],
         status=row["status"],
         bucket=row["bucket"],
         path=row["path"],
+        video_url=video_url,
     )

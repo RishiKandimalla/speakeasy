@@ -6,3 +6,4 @@ class UploadResponse(BaseModel):
     status: str
     bucket: str
     path: str
+    video_url: str | None = None
