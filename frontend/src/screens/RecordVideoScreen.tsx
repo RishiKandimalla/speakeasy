@@ -1,24 +1,31 @@
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { CameraView } from 'expo-camera';
 import * as MediaLibrary from 'expo-media-library';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
-  Button,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
-import { AppHeading } from '../components/AppHeading';
 import { VideoPreview } from '../components/VideoPreview';
+import type { HomeStackParamList } from '../navigation/types';
 import { usePermissions } from '../hooks/usePermissions';
 import { persistVideoFromUri } from '../lib/savedVideos';
+import { colors, radius, spacing, typography } from '../theme';
 
 type Phase = 'idle' | 'recording' | 'preview';
 
-export function HomeScreen() {
+type Nav = NativeStackNavigationProp<HomeStackParamList, 'RecordVideo'>;
+
+export function RecordVideoScreen() {
+  const navigation = useNavigation<Nav>();
   const { allGranted, ready, requestAll } = usePermissions();
   const cameraRef = useRef<CameraView>(null);
   const recordingPromiseRef = useRef<Promise<{ uri: string } | undefined> | null>(
@@ -99,11 +106,15 @@ export function HomeScreen() {
     }
   }, [videoUri]);
 
+  const analyze = useCallback(() => {
+    if (!videoUri) return;
+    navigation.replace('AnalysisLoading', { videoUri });
+  }, [navigation, videoUri]);
+
   if (Platform.OS === 'web') {
     return (
-      <View style={styles.container}>
-        <AppHeading />
-        <Text style={styles.subtitle}>
+      <View style={styles.centered}>
+        <Text style={styles.muted} numberOfLines={4}>
           Video recording is not supported on web in this build. Use iOS or Android with Expo Go.
         </Text>
       </View>
@@ -112,31 +123,33 @@ export function HomeScreen() {
 
   if (!ready) {
     return (
-      <View style={styles.container}>
-        <AppHeading />
-        <Text style={styles.subtitle}>Checking permissions…</Text>
+      <View style={styles.centered}>
+        <ActivityIndicator color={colors.primary} />
+        <Text style={styles.muted}>Checking permissions…</Text>
       </View>
     );
   }
 
   if (!allGranted) {
     return (
-      <View style={styles.container}>
-        <AppHeading />
-        <Text style={styles.subtitle}>
+      <View style={styles.centered}>
+        <Text style={styles.muted} numberOfLines={4}>
           Camera, microphone, and photo library access are required to record and save video.
         </Text>
-        <Button title="Request permissions" onPress={() => void requestAll()} />
+        <Pressable style={styles.btn} onPress={() => void requestAll()}>
+          <Text style={styles.btnText}>Request permissions</Text>
+        </Pressable>
       </View>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      contentContainerStyle={styles.scroll}
+      keyboardShouldPersistTaps="handled"
+      style={styles.scrollView}
+    >
       <View style={styles.inner}>
-        <AppHeading />
-        <Text style={styles.subtitle}>Record, play back, save to camera roll</Text>
-
         {phase !== 'preview' && (
           <View style={styles.cameraBox}>
             <CameraView
@@ -151,39 +164,44 @@ export function HomeScreen() {
         )}
 
         {phase === 'idle' && (
-          <View style={styles.row}>
-            <Button
-              title="Start recording"
-              onPress={() => void startRecording()}
-              disabled={!cameraReady}
-            />
-          </View>
+          <Pressable
+            style={[styles.btn, !cameraReady && styles.btnDisabled]}
+            onPress={() => void startRecording()}
+            disabled={!cameraReady}
+          >
+            <Text style={styles.btnText}>Start recording</Text>
+          </Pressable>
         )}
 
         {phase === 'recording' && (
-          <View style={styles.row}>
-            <Button title="Stop recording" onPress={() => void stopRecording()} color="#c00" />
-          </View>
+          <Pressable style={[styles.btn, styles.btnDanger]} onPress={() => void stopRecording()}>
+            <Text style={styles.btnText}>Stop recording</Text>
+          </Pressable>
         )}
 
         {phase === 'preview' && videoUri && (
           <>
             <VideoPreview uri={videoUri} isPlaying={playbackPlaying} />
-            <View style={styles.row}>
-              <Button
-                title={playbackPlaying ? 'Pause' : 'Play'}
-                onPress={() => setPlaybackPlaying((p) => !p)}
-              />
-            </View>
-            <View style={styles.row}>
-              <Button title="Save to camera roll" onPress={() => void saveToCameraRoll()} />
-            </View>
-            <View style={styles.row}>
-              <Button title="Keep in app" onPress={() => void keepInApp()} />
-            </View>
-            <View style={styles.row}>
-              <Button title="Discard / record again" onPress={discardRecording} />
-            </View>
+            <Pressable
+              style={styles.btnSecondary}
+              onPress={() => setPlaybackPlaying((p) => !p)}
+            >
+              <Text style={styles.btnSecondaryText}>
+                {playbackPlaying ? 'Pause' : 'Play'}
+              </Text>
+            </Pressable>
+            <Pressable style={styles.btn} onPress={analyze}>
+              <Text style={styles.btnText}>Analyze</Text>
+            </Pressable>
+            <Pressable style={styles.btnSecondary} onPress={() => void saveToCameraRoll()}>
+              <Text style={styles.btnSecondaryText}>Save to camera roll</Text>
+            </Pressable>
+            <Pressable style={styles.btnSecondary} onPress={() => void keepInApp()}>
+              <Text style={styles.btnSecondaryText}>Keep in app</Text>
+            </Pressable>
+            <Pressable style={styles.btnSecondary} onPress={discardRecording}>
+              <Text style={styles.btnSecondaryText}>Discard</Text>
+            </Pressable>
           </>
         )}
       </View>
@@ -192,42 +210,80 @@ export function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  scrollView: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   scroll: {
     flexGrow: 1,
+    paddingBottom: spacing.xxl,
   },
   inner: {
-    flex: 1,
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    paddingHorizontal: spacing.xxl,
+    paddingVertical: spacing.lg,
+    alignItems: 'stretch',
   },
-  container: {
+  centered: {
     flex: 1,
+    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
+    padding: spacing.xxl,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#555',
+  muted: {
+    ...typography.body,
+    color: colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   cameraBox: {
     width: '100%',
-    maxWidth: 360,
+    maxWidth: 400,
+    alignSelf: 'center',
     aspectRatio: 3 / 4,
-    borderRadius: 8,
+    borderRadius: radius.md,
     overflow: 'hidden',
-    backgroundColor: '#111',
-    marginBottom: 16,
+    backgroundColor: colors.surface,
+    marginBottom: spacing.lg,
   },
   camera: {
     flex: 1,
   },
-  row: {
+  btn: {
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+    maxWidth: 400,
+    alignSelf: 'center',
     width: '100%',
-    maxWidth: 360,
-    marginBottom: 10,
+  },
+  btnDisabled: {
+    opacity: 0.5,
+  },
+  btnDanger: {
+    backgroundColor: colors.danger,
+  },
+  btnText: {
+    ...typography.body,
+    fontWeight: '600',
+    color: colors.background,
+  },
+  btnSecondary: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+    maxWidth: 400,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  btnSecondaryText: {
+    ...typography.body,
+    color: colors.primary,
+    fontWeight: '600',
   },
 });

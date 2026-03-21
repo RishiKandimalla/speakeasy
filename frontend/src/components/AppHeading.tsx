@@ -1,5 +1,7 @@
 import { StyleSheet, Text } from 'react-native';
 
+import { colors, typography } from '../theme';
+
 type AppHeadingProps = {
   title?: string;
 };
@@ -10,8 +12,9 @@ export function AppHeading({ title = 'Speakeasy' }: AppHeadingProps) {
 
 const styles = StyleSheet.create({
   title: {
+    ...typography.title,
     fontSize: 28,
-    fontWeight: '700',
+    color: colors.text,
     marginBottom: 12,
   },
 });

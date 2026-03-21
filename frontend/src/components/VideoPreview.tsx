@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 
+import { colors, radius } from '../theme';
+
 type VideoPreviewProps = {
   uri: string;
   isPlaying: boolean;
@@ -31,9 +33,9 @@ const styles = StyleSheet.create({
   wrap: {
     width: '100%',
     maxHeight: 280,
-    borderRadius: 8,
+    borderRadius: radius.md,
     overflow: 'hidden',
-    backgroundColor: '#000',
+    backgroundColor: colors.surface,
   },
   video: {
     width: '100%',

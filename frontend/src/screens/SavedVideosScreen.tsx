@@ -2,33 +2,27 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
 import {
   Alert,
-  Button,
   FlatList,
   Platform,
+  Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { RecordingRow } from '../components/RecordingRow';
 import { VideoPreview } from '../components/VideoPreview';
+import { savedVideoToRecordingCardItem } from '../lib/recordingCard';
 import {
   deleteSavedVideo,
   listSavedVideos,
   type SavedVideo,
 } from '../lib/savedVideos';
-
-function formatLabel(item: SavedVideo): string {
-  const m = item.filename.match(/^video_(\d+)\./);
-  if (m) {
-    const d = new Date(Number(m[1]));
-    if (!Number.isNaN(d.getTime())) {
-      return d.toLocaleString();
-    }
-  }
-  return item.filename;
-}
+import { colors, radius, spacing, typography } from '../theme';
 
 export function SavedVideosScreen() {
+  const insets = useSafeAreaInsets();
   const [items, setItems] = useState<SavedVideo[]>([]);
   const [playingUri, setPlayingUri] = useState<string | null>(null);
   const [playbackPlaying, setPlaybackPlaying] = useState(false);
@@ -54,7 +48,8 @@ export function SavedVideosScreen() {
 
   const onDelete = useCallback(
     (item: SavedVideo) => {
-      Alert.alert('Delete video', `Remove "${formatLabel(item)}"?`, [
+      const label = savedVideoToRecordingCardItem(item).title;
+      Alert.alert('Delete video', `Remove "${label}"?`, [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',
@@ -81,9 +76,11 @@ export function SavedVideosScreen() {
 
   if (Platform.OS === 'web') {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.title}>Saved</Text>
-        <Text style={styles.hint}>
+      <View style={[styles.centered, { paddingTop: insets.top }]}>
+        <Text style={styles.title} numberOfLines={1}>
+          Saved
+        </Text>
+        <Text style={styles.hint} numberOfLines={3}>
           In-app saved videos are not available on web.
         </Text>
       </View>
@@ -91,10 +88,12 @@ export function SavedVideosScreen() {
   }
 
   return (
-    <View style={styles.root}>
-      <Text style={styles.title}>Saved in app</Text>
-      <Text style={styles.hint}>
-        Stored in app documents (not camera roll). Persists until you delete or uninstall.
+    <View style={[styles.root, { paddingTop: insets.top + spacing.md }]}>
+      <Text style={styles.title} numberOfLines={1}>
+        Saved in app
+      </Text>
+      <Text style={styles.hint} numberOfLines={3}>
+        Stored in app documents. Persists until you delete or uninstall.
       </Text>
 
       <FlatList
@@ -104,37 +103,50 @@ export function SavedVideosScreen() {
           <Text style={styles.empty}>No saved videos yet.</Text>
         }
         contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => (
-          <View style={styles.row}>
-            <Text style={styles.rowLabel} numberOfLines={2}>
-              {formatLabel(item)}
-            </Text>
-            <View style={styles.rowActions}>
-              <Button
-                title={playingUri === item.uri ? 'Hide' : 'Play'}
-                onPress={() => {
-                  if (playingUri === item.uri) {
-                    setPlayingUri(null);
-                    setPlaybackPlaying(false);
-                  } else {
-                    setPlayingUri(item.uri);
-                    setPlaybackPlaying(true);
-                  }
-                }}
-              />
-              <Button title="Delete" color="#c00" onPress={() => onDelete(item)} />
-            </View>
-            {playingUri === item.uri && (
-              <View style={styles.previewBlock}>
-                <VideoPreview uri={item.uri} isPlaying={playbackPlaying} />
-                <Button
-                  title={playbackPlaying ? 'Pause' : 'Play'}
-                  onPress={() => setPlaybackPlaying((p) => !p)}
-                />
+        renderItem={({ item, index }) => {
+          const cardItem = savedVideoToRecordingCardItem(item);
+          return (
+            <View style={styles.listItem}>
+              <RecordingRow item={cardItem} index={index} />
+              <View style={styles.rowActions}>
+                <Pressable
+                  style={styles.btnSecondary}
+                  onPress={() => {
+                    if (playingUri === item.uri) {
+                      setPlayingUri(null);
+                      setPlaybackPlaying(false);
+                    } else {
+                      setPlayingUri(item.uri);
+                      setPlaybackPlaying(true);
+                    }
+                  }}
+                >
+                  <Text style={styles.btnSecondaryText} numberOfLines={1}>
+                    {playingUri === item.uri ? 'Hide' : 'Play'}
+                  </Text>
+                </Pressable>
+                <Pressable style={styles.btnDanger} onPress={() => onDelete(item)}>
+                  <Text style={styles.btnDangerText} numberOfLines={1}>
+                    Delete
+                  </Text>
+                </Pressable>
               </View>
-            )}
-          </View>
-        )}
+              {playingUri === item.uri && (
+                <View style={styles.previewBlock}>
+                  <VideoPreview uri={item.uri} isPlaying={playbackPlaying} />
+                  <Pressable
+                    style={styles.btnSecondary}
+                    onPress={() => setPlaybackPlaying((p) => !p)}
+                  >
+                    <Text style={styles.btnSecondaryText} numberOfLines={1}>
+                      {playbackPlaying ? 'Pause' : 'Play'}
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
+            </View>
+          );
+        }}
       />
     </View>
   );
@@ -143,51 +155,69 @@ export function SavedVideosScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    backgroundColor: '#fff',
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.background,
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
-    backgroundColor: '#fff',
+    padding: spacing.xxl,
+    backgroundColor: colors.background,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 8,
+    ...typography.title,
+    color: colors.text,
+    marginBottom: spacing.sm,
   },
   hint: {
-    fontSize: 14,
-    color: '#555',
-    marginBottom: 16,
+    ...typography.caption,
+    color: colors.textMuted,
+    marginBottom: spacing.lg,
   },
   listContent: {
-    paddingBottom: 24,
+    paddingBottom: spacing.xxl,
+  },
+  listItem: {
+    marginBottom: spacing.lg,
   },
   empty: {
-    color: '#888',
-    marginTop: 24,
+    ...typography.body,
+    color: colors.textMuted,
+    marginTop: spacing.xxl,
     textAlign: 'center',
-  },
-  row: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#ccc',
-    paddingVertical: 12,
-  },
-  rowLabel: {
-    fontSize: 16,
-    marginBottom: 8,
   },
   rowActions: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing.sm,
     alignItems: 'center',
     flexWrap: 'wrap',
+    marginTop: spacing.sm,
   },
   previewBlock: {
-    marginTop: 12,
+    marginTop: spacing.md,
+  },
+  btnSecondary: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.sm,
+  },
+  btnSecondaryText: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  btnDanger: {
+    backgroundColor: 'rgba(229, 115, 115, 0.2)',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.sm,
+  },
+  btnDangerText: {
+    ...typography.caption,
+    color: colors.danger,
+    fontWeight: '600',
   },
 });
