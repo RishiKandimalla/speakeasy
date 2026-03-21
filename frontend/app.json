@@ -27,6 +27,24 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Speakeasy to access your camera",
+          "microphonePermission": "Allow Speakeasy to access your microphone",
+          "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow Speakeasy to save videos to your camera roll",
+          "savePhotosPermission": "Allow Speakeasy to save videos to your camera roll"
+        }
+      ],
+      "expo-video"
+    ]
   }
 }
