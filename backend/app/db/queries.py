@@ -168,24 +168,15 @@ def update_upload_status(upload_id: str, status: str) -> None:
 
 def list_clips(category: str | None = None) -> list[dict]:
     db = get_client()
-    try:
-        query = db.table("clips").select("*")
-        if category and category != "both":
-            query = query.eq("category", category)
-        result = query.order("created_at", desc=True).execute()
-        return result.data or []
-    except Exception as exc:
-        # Fall back to Storage listing if clips table is missing in the current Supabase project.
-        if "PGRST205" not in str(exc):
-            raise
 
-        categories = ["drone", "minecraft"] if not category or category == "both" else [category]
+    def _list_clips_from_storage(selected_category: str | None) -> list[dict]:
+        categories = ["drone", "minecraft"] if not selected_category or selected_category == "both" else [selected_category]
         rows: list[dict] = []
         for cat in categories:
             objects = db.storage.from_("clips").list(path=cat, options={"limit": 500, "offset": 0})
             for obj in objects or []:
                 name = obj.get("name")
-                if not name:
+                if not name or not name.lower().endswith(".mp4"):
                     continue
                 metadata = obj.get("metadata") or {}
                 size = metadata.get("size")
@@ -200,6 +191,22 @@ def list_clips(category: str | None = None) -> list[dict]:
                     }
                 )
         return rows
+
+    try:
+        query = db.table("clips").select("*")
+        if category and category != "both":
+            query = query.eq("category", category)
+        result = query.order("created_at", desc=True).execute()
+        rows = result.data or []
+        if rows:
+            return rows
+        # If table exists but has no data, fall back to Storage listing.
+        return _list_clips_from_storage(category)
+    except Exception as exc:
+        # Fall back to Storage listing if clips table is missing in the current Supabase project.
+        if "PGRST205" not in str(exc):
+            raise
+        return _list_clips_from_storage(category)
 
 
 # ── Profiles ──────────────────────────────────────────────────────────────────
