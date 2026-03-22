@@ -9,7 +9,7 @@ import { NavigationContainer, DefaultTheme, type Theme } from '@react-navigation
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from './src/context/AuthContext';
@@ -20,12 +20,12 @@ import { CreateVideoScreen } from './src/screens/CreateVideoScreen';
 import { FeedScreen } from './src/screens/FeedScreen';
 import { HomeDashboardScreen } from './src/screens/HomeDashboardScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
+import { MetricsScreen } from './src/screens/MetricsScreen';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
+import { ProfileScreen } from './src/screens/ProfileScreen';
 import { RecordVideoScreen } from './src/screens/RecordVideoScreen';
-import { CloudVideosScreen } from './src/screens/CloudVideosScreen';
-import { SavedVideosScreen } from './src/screens/SavedVideosScreen';
 import { UploadedVideoReviewScreen } from './src/screens/UploadedVideoReviewScreen';
-import { colors } from './src/theme';
+import { authColors, colors } from './src/theme';
 
 const Tab = createBottomTabNavigator();
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
@@ -52,6 +52,10 @@ const stackScreenOptions = {
   headerShadowVisible: false,
   contentStyle: { backgroundColor: colors.background },
 };
+
+function PlusActionScreen() {
+  return <View style={{ flex: 1, backgroundColor: authColors.background }} />;
+}
 
 function HomeStackNavigator() {
   return (
@@ -111,19 +115,20 @@ function RootNavigator() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
+          backgroundColor: authColors.background,
+          borderTopColor: '#DCD8CA',
           borderTopWidth: 1,
-          height: 66,
+          height: 74,
           paddingTop: 8,
-          paddingBottom: 10,
+          paddingBottom: 14,
         },
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textMuted,
+        tabBarActiveTintColor: '#3E4A2E',
+        tabBarInactiveTintColor: '#ADB39A',
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: '600',
           letterSpacing: 0.2,
+          display: 'none',
         },
       }}
     >
@@ -143,27 +148,44 @@ function RootNavigator() {
         options={{
           title: 'Feed',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="play-circle-outline" size={size} color={color} />
+            <Ionicons name="videocam-outline" size={size} color={color} />
           ),
         }}
       />
       <Tab.Screen
-        name="Cloud"
-        component={CloudVideosScreen}
+        name="Create"
+        component={PlusActionScreen}
+        options={({ navigation }) => ({
+          title: '',
+          tabBarButton: () => (
+            <Pressable
+              onPress={() => (navigation as any).navigate('Home', { screen: 'CreateVideo' })}
+              style={styles.plusButtonWrap}
+            >
+              <View style={styles.plusButton}>
+                <Ionicons name="add" size={30} color="#FFFFFF" />
+              </View>
+            </Pressable>
+          ),
+        })}
+      />
+      <Tab.Screen
+        name="Metrics"
+        component={MetricsScreen}
         options={{
-          title: 'Cloud',
+          title: 'Metrics',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cloud-outline" size={size} color={color} />
+            <Ionicons name="download-outline" size={size} color={color} />
           ),
         }}
       />
       <Tab.Screen
-        name="Saved"
-        component={SavedVideosScreen}
+        name="Profile"
+        component={ProfileScreen}
         options={{
-          title: 'Saved',
+          title: 'Profile',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="folder-outline" size={size} color={color} />
+            <Ionicons name="person-outline" size={size} color={color} />
           ),
         }}
       />
@@ -200,3 +222,24 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  plusButtonWrap: {
+    top: -8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  plusButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#30410D',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 4,
+  },
+});
