@@ -121,7 +121,6 @@ export function HomeDashboardScreen() {
           <Image source={require('../../assets/images/speakeasy_name.png')} style={styles.wordmark} resizeMode="contain" />
           <View style={styles.headerRight}>
             <Pressable hitSlop={8} onPress={() => navigation.navigate('Notifications')}>
-              <Ionicons name="notifications-outline" size={22} color="#263103" />
               <NotificationBell />
             </Pressable>
             <Pressable hitSlop={8} onPress={() => setMenuVisible(true)}>

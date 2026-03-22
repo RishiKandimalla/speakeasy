@@ -4,9 +4,8 @@ import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
-import { NotificationBell } from '../components/NotificationBell';
 import { SlideOutMenu } from '../components/SlideOutMenu';
-import { authColors, fontFamily, radius, spacing } from '../theme';
+import { authColors, radius, spacing } from '../theme';
 import { getMyStats, listJobs, type JobSummary, type UserStats } from '../lib/api';
 import type { Metrics } from '../types/analysis';
 
@@ -38,7 +37,6 @@ function buildCalendarRows(year: number, month: number, daysWithVideos: Set<numb
     const isToday = year === today.year && month === today.month && d === today.day;
     cells.push({ day: d, hasVideo: daysWithVideos.has(d), isToday });
   }
-  // Pad to complete final row
   while (cells.length % 7 !== 0) cells.push({ day: null, hasVideo: false, isToday: false });
 
   const rows: typeof cells[] = [];
@@ -132,7 +130,6 @@ export function MetricsScreen() {
     else setViewMonth(m => m + 1);
   }
 
-  // Build set of days with videos for the viewed month
   const daysWithVideos = new Set<number>();
   for (const job of jobs) {
     if (job.status !== 'completed') continue;
@@ -143,7 +140,6 @@ export function MetricsScreen() {
   }
   const calendarRows = buildCalendarRows(viewYear, viewMonth, daysWithVideos, today);
 
-  // Monthly stats from jobs in current calendar month
   const monthJobs = jobs.filter((j) => {
     if (j.status !== 'completed') return false;
     const d = new Date(j.created_at);
@@ -162,19 +158,16 @@ export function MetricsScreen() {
   }));
 
   const streakDays = stats?.streak_days ?? 0;
-
   const chartPoints = stats ? buildChartPoints(stats.weekly_history) : [];
   const activeChartPoints = chartPoints.filter((p): p is { left: number; top: number } => p !== null);
-
   const currentDayIdx = todayDate.getDay();
 
-  // Derived display values
   const clarityScore = monthAvgClarity != null ? Math.round(monthAvgClarity) : null;
   const clarityPct = clarityScore != null ? clarityScore / 100 : 0;
   const fillerPerVideo = monthAvgFillerCount != null ? Math.round(monthAvgFillerCount) : null;
-  const fillerPct = fillerPerVideo != null ? Math.min(fillerPerVideo / 20, 1) : 0; // cap at 20 for bar scale
+  const fillerPct = fillerPerVideo != null ? Math.min(fillerPerVideo / 20, 1) : 0;
   const wpmValue = monthAvgWpm != null ? Math.round(monthAvgWpm) : null;
-  const wpmPct = wpmValue != null ? Math.min(wpmValue / 200, 1) : 0; // cap at 200 for bar scale
+  const wpmPct = wpmValue != null ? Math.min(wpmValue / 200, 1) : 0;
 
   const avgScoreStr = monthAvgScore != null ? String(Math.round(monthAvgScore)) : '--';
   const clarityStr = clarityScore != null ? `${clarityScore} / 100` : '-- / 100';
@@ -184,22 +177,26 @@ export function MetricsScreen() {
   return (
     <>
       <ScrollView
-        style={styles.root}
-        contentContainerStyle={{
-          paddingTop: insets.top + spacing.md,
-          paddingBottom: insets.bottom + spacing.xxl,
-        }}
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.root,
+          { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.xxl },
+        ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
+        {/* ── Header ───────────────────────────────────────────────── */}
         <View style={styles.header}>
-          <Image source={require('../../assets/images/speakeasy_name.png')} style={styles.wordmark} resizeMode="contain" />
+          <Image
+            source={require('../../assets/images/speakeasy_name.png')}
+            style={styles.wordmark}
+            resizeMode="contain"
+          />
           <View style={styles.headerIcons}>
             <Pressable hitSlop={8} onPress={() => navigation.navigate('Home', { screen: 'Notifications' })}>
-              <NotificationBell />
+              <Ionicons name="notifications-outline" size={22} color="#263103" />
             </Pressable>
             <Pressable hitSlop={8} onPress={() => setMenuVisible(true)}>
-              <Ionicons name="menu-outline" size={24} color="#1F2A16" />
+              <Ionicons name="menu-outline" size={24} color="#263103" />
             </Pressable>
           </View>
         </View>
@@ -210,48 +207,56 @@ export function MetricsScreen() {
           </View>
         ) : (
           <>
-            {/* Calendar Section */}
-            <Text style={styles.sectionTitle}>CALENDAR</Text>
+            {/* ── Calendar ─────────────────────────────────────────── */}
+            <Text style={styles.sectionLabel}>Calendar</Text>
             <View style={styles.card}>
               {/* Month nav */}
               <View style={styles.monthHeader}>
                 <Pressable hitSlop={12} onPress={prevMonth}>
                   <Text style={styles.monthNav}>← Prev</Text>
                 </Pressable>
-                <Text style={styles.monthText}>{MONTH_NAMES[viewMonth]} {viewYear}</Text>
+                <Text style={styles.monthTitle}>
+                  {MONTH_NAMES[viewMonth]} {viewYear}
+                </Text>
                 <Pressable hitSlop={12} onPress={nextMonth}>
                   <Text style={styles.monthNav}>Next →</Text>
                 </Pressable>
               </View>
 
-              {/* Weekday labels */}
-              <View style={styles.weekHeader}>
-                {WEEKDAY_LABELS.map((day) => (
-                  <View key={day} style={styles.weekSlot}>
-                    <Text style={styles.weekLabel}>{day}</Text>
+              {/* Weekday headers */}
+              <View style={styles.weekRow}>
+                {WEEKDAY_LABELS.map((d) => (
+                  <View key={d} style={styles.daySlot}>
+                    <Text style={styles.weekLabel}>{d}</Text>
                   </View>
                 ))}
               </View>
 
-              {/* Calendar grid */}
-              <View style={styles.calendarGrid}>
-                {calendarRows.map((row, rowIndex) => (
-                  <View key={rowIndex} style={styles.calendarRow}>
-                    {row.map((cell, idx) => (
-                      <View key={`${rowIndex}-${idx}`} style={styles.daySlot}>
+              {/* Day grid */}
+              <View style={styles.calGrid}>
+                {calendarRows.map((row, ri) => (
+                  <View key={ri} style={styles.weekRow}>
+                    {row.map((cell, ci) => (
+                      <View key={ci} style={styles.daySlot}>
                         <View style={[
                           styles.dayCell,
-                          cell.day !== null && !cell.hasVideo && !cell.isToday && styles.dayCellEmpty,
-                          cell.hasVideo && !cell.isToday && styles.dayCellHasVideo,
+                          cell.hasVideo && !cell.isToday && styles.dayCellVideo,
                           cell.isToday && styles.dayCellToday,
                         ]}>
                           {cell.day !== null && (
                             <>
-                              <Text style={[styles.dayLabel, cell.isToday && styles.dayLabelToday]}>
+                              <Text style={[
+                                styles.dayNum,
+                                cell.hasVideo && !cell.isToday && styles.dayNumVideo,
+                                cell.isToday && styles.dayNumToday,
+                              ]}>
                                 {cell.day}
                               </Text>
                               {(cell.hasVideo || cell.isToday) && (
-                                <View style={[styles.dayDot, cell.isToday && styles.dayDotToday]} />
+                                <View style={[
+                                  styles.dayDot,
+                                  cell.isToday && styles.dayDotToday,
+                                ]} />
                               )}
                             </>
                           )}
@@ -265,25 +270,24 @@ export function MetricsScreen() {
               {/* Legend */}
               <View style={styles.legend}>
                 <View style={styles.legendItem}>
-                  <View style={[styles.legendSwatch, styles.legendSwatchVideo]} />
+                  <View style={[styles.legendSwatch, { backgroundColor: '#E0D6E8', borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)' }]} />
                   <Text style={styles.legendText}>Video saved</Text>
                 </View>
                 <View style={styles.legendItem}>
-                  <View style={[styles.legendSwatch, styles.legendSwatchToday]} />
+                  <View style={[styles.legendSwatch, { backgroundColor: '#665672' }]} />
                   <Text style={styles.legendText}>Today</Text>
                 </View>
                 <View style={styles.legendItem}>
-                  <View style={[styles.legendSwatch, styles.legendSwatchNone]} />
+                  <View style={[styles.legendSwatch, { backgroundColor: '#C5C5C5', borderWidth: 1, borderColor: 'rgba(0,0,0,0.06)' }]} />
                   <Text style={styles.legendText}>No video</Text>
                 </View>
               </View>
             </View>
 
-            {/* Timeline Section */}
-            <Text style={styles.sectionTitle}>TIMELINE</Text>
+            {/* ── Your Progress chart ───────────────────────────────── */}
             <View style={styles.card}>
               <View style={styles.rowBetween}>
-                <Text style={styles.cardHeading}>Your progress</Text>
+                <Text style={styles.cardHeading}>Your Progress</Text>
                 <Text style={styles.cardHint}>This week</Text>
               </View>
               <View style={styles.chart}>
@@ -304,6 +308,7 @@ export function MetricsScreen() {
                   ))
                 )}
               </View>
+              {/* Week axis — Figma uses Corben 10px, color #757D5C */}
               <View style={styles.weekAxis}>
                 {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d, i) => {
                   const jsDay = i === 6 ? 0 : i + 1;
@@ -316,46 +321,52 @@ export function MetricsScreen() {
               </View>
             </View>
 
-            {/* This Month Section */}
-            <Text style={styles.sectionTitle}>THIS MONTH</Text>
+            {/* ── This Month stats ──────────────────────────────────── */}
+            <Text style={styles.sectionLabel}>This month</Text>
             <View style={styles.card}>
-              {/* Stats mini-cards */}
-              <View style={styles.monthStats}>
-                <View style={styles.statMini}>
+              {/* Three mini-stat tiles */}
+              <View style={styles.statRow}>
+                <View style={styles.statTile}>
                   <Text style={styles.statNum}>{monthVideoCount}</Text>
                   <Text style={styles.statSub}>Videos</Text>
                 </View>
-                <View style={styles.statMini}>
-                  <Text style={[styles.statNum, styles.statNumGreen]}>{avgScoreStr}</Text>
+                <View style={styles.statTile}>
+                  {/* Avg score — olive green from Figma */}
+                  <Text style={[styles.statNum, { color: '#757D5C' }]}>{avgScoreStr}</Text>
                   <Text style={styles.statSub}>Avg score</Text>
                 </View>
-                <View style={styles.statMini}>
-                  <Text style={[styles.statNum, styles.statNumPurple]}>{streakDays}</Text>
+                <View style={styles.statTile}>
+                  <Text style={styles.statNum}>{streakDays}</Text>
                   <Text style={styles.statSub}>Day streak</Text>
                 </View>
               </View>
 
-              {/* Metric rows */}
-              <View style={styles.metricRowWrap}>
+              {/* Metric rows with progress bars */}
+              <View style={styles.metricRow}>
                 <Text style={styles.metricLabel}>Clarity</Text>
-                <View style={styles.metricBarTrack}>
-                  <View style={[styles.metricBarFill, { width: `${clarityPct * 100}%`, backgroundColor: '#639922' }]} />
+                <View style={styles.barTrack}>
+                  {/* Figma: clarity bar is #757D5C */}
+                  <View style={[styles.barFill, { width: `${clarityPct * 100}%` as any, backgroundColor: '#757D5C' }]} />
                 </View>
                 <Text style={styles.metricValue}>{clarityStr}</Text>
               </View>
               <View style={styles.metricDivider} />
-              <View style={styles.metricRowWrap}>
+
+              <View style={styles.metricRow}>
                 <Text style={styles.metricLabel}>Filler words</Text>
-                <View style={styles.metricBarTrack}>
-                  <View style={[styles.metricBarFill, { width: `${fillerPct * 100}%`, backgroundColor: '#F1AC4C' }]} />
+                <View style={styles.barTrack}>
+                  {/* Figma: filler bar is #FFEB92 yellow */}
+                  <View style={[styles.barFill, { width: `${fillerPct * 100}%` as any, backgroundColor: '#FFEB92' }]} />
                 </View>
                 <Text style={styles.metricValue}>{fillerStr}</Text>
               </View>
               <View style={styles.metricDivider} />
-              <View style={styles.metricRowWrap}>
+
+              <View style={[styles.metricRow, { borderBottomWidth: 0 }]}>
                 <Text style={styles.metricLabel}>Speaking rate</Text>
-                <View style={styles.metricBarTrack}>
-                  <View style={[styles.metricBarFill, { width: `${wpmPct * 100}%`, backgroundColor: '#C69AE8' }]} />
+                <View style={styles.barTrack}>
+                  {/* Figma: speaking rate bar is #CABCD5 lavender */}
+                  <View style={[styles.barFill, { width: `${wpmPct * 100}%` as any, backgroundColor: '#CABCD5' }]} />
                 </View>
                 <Text style={styles.metricValue}>{wpmStr}</Text>
               </View>
@@ -369,11 +380,15 @@ export function MetricsScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: {
+  scroll: {
     flex: 1,
-    backgroundColor: authColors.background,
+    backgroundColor: authColors.background, // #FFFAE0 cream
+  },
+  root: {
     paddingHorizontal: spacing.lg,
   },
+
+  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -392,95 +407,113 @@ const styles = StyleSheet.create({
     paddingTop: 80,
     alignItems: 'center',
   },
-  sectionTitle: {
-    fontFamily: fontFamily.bodySemiBold,
+
+  // Section label — Figma: Corben 11px uppercase #9CA4AF letterSpacing 0.55
+  sectionLabel: {
+    fontFamily: 'Corben_400Regular',
     fontSize: 11,
-    color: '#2D2830',
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
+    color: '#9CA4AF',
+    textTransform: 'uppercase',
     letterSpacing: 0.55,
+    lineHeight: 16.5,
+    marginBottom: spacing.sm,
+    marginTop: spacing.sm,
   },
+
+  // Card — Figma: rgba(255,255,255,0.90) frosted, radius 16, olive border
   card: {
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderRadius: radius.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.90)',
+    borderRadius: 16,
     borderWidth: 1.27,
-    borderColor: 'rgba(38,49,3,0.18)',
+    borderColor: 'rgba(38, 49, 3, 0.18)',
     padding: spacing.md,
     marginBottom: spacing.md,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOpacity: 0.10,
+    shadowRadius: 3,
     elevation: 2,
   },
+
+  // ── Calendar ──────────────────────────────────────────────────────────
+
+  // Month nav row — Figma: Jost 500 11px #665672 for nav, Corben 13px #111827 for month
   monthHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   monthNav: {
-    fontFamily: fontFamily.bodyMedium,
-    color: '#665672',
+    fontFamily: 'Jost_500Medium',
     fontSize: 11,
+    lineHeight: 16.5,
+    color: '#665672',
   },
-  monthText: {
-    fontFamily: fontFamily.bodyMedium,
-    color: '#111827',
+  monthTitle: {
+    fontFamily: 'Corben_400Regular',
     fontSize: 13,
+    lineHeight: 22,
+    color: '#111827',
+    includeFontPadding: false,
   },
-  weekHeader: {
+
+  // Day-of-week header row — Figma: Jost 500 9px #9CA3AF letterSpacing 0.36
+  weekRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.xs,
-  },
-  weekSlot: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  weekLabel: {
-    fontFamily: fontFamily.bodyMedium,
-    color: '#9CA3AF',
-    fontSize: 9,
-    letterSpacing: 0.36,
-  },
-  calendarGrid: {
-    gap: 4,
-  },
-  calendarRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
   },
   daySlot: {
     flex: 1,
     alignItems: 'center',
+    marginVertical: 2,
   },
+  weekLabel: {
+    fontFamily: 'Jost_500Medium',
+    fontSize: 9,
+    color: '#9CA3AF',
+    letterSpacing: 0.36,
+    lineHeight: 13.5,
+  },
+
+  calGrid: {
+    gap: 2,
+    marginTop: spacing.xs,
+  },
+
+  // Day cells — Figma: 40×40 radius 7
   dayCell: {
     width: 40,
     height: 40,
     borderRadius: 7,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent',
   },
-  dayCellEmpty: {
-    backgroundColor: 'transparent',
-  },
-  dayCellHasVideo: {
+  // Has video — Figma: #E0D6E8 lavender
+  dayCellVideo: {
     backgroundColor: '#E0D6E8',
   },
+  // Today — Figma: #665672 dark purple
   dayCellToday: {
     backgroundColor: '#665672',
   },
-  dayLabel: {
-    fontFamily: fontFamily.body,
-    color: '#6B7280',
+
+  // Day number — Figma: Jost 400 10px #6B7280 (no video), Jost 500 #665672 (has video)
+  dayNum: {
+    fontFamily: 'Jost_400Regular',
     fontSize: 10,
+    lineHeight: 10,
+    color: '#6B7280',
   },
-  dayLabelToday: {
-    fontFamily: fontFamily.bodyMedium,
-    color: 'rgba(255,255,255,0.9)',
+  dayNumVideo: {
+    fontFamily: 'Jost_500Medium',
+    color: '#665672',
   },
+  dayNumToday: {
+    fontFamily: 'Jost_500Medium',
+    color: 'rgba(255, 255, 255, 0.90)',
+  },
+
+  // Dot indicator — Figma: 4×4 circle #968E9D (video), white (today)
   dayDot: {
     width: 4,
     height: 4,
@@ -489,11 +522,13 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   dayDotToday: {
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: 'rgba(255, 255, 255, 0.90)',
   },
+
+  // Legend
   legend: {
     flexDirection: 'row',
-    gap: spacing.md,
+    gap: spacing.lg,
     marginTop: spacing.md,
   },
   legendItem: {
@@ -506,24 +541,16 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 3,
   },
-  legendSwatchVideo: {
-    backgroundColor: '#E0D6E8',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
-  },
-  legendSwatchToday: {
-    backgroundColor: '#665672',
-  },
-  legendSwatchNone: {
-    backgroundColor: '#C5C5C5',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
-  },
   legendText: {
-    fontFamily: fontFamily.body,
+    fontFamily: 'Jost_400Regular',
     fontSize: 10,
+    lineHeight: 15,
     color: '#9CA3AF',
   },
+
+  // ── Progress chart ────────────────────────────────────────────────────
+
+  // Card heading — Figma: Corben 14px #111827
   rowBetween: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -531,19 +558,25 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   cardHeading: {
-    fontFamily: fontFamily.bodyMedium,
+    fontFamily: 'Corben_400Regular',
     fontSize: 14,
+    lineHeight: 22,
     color: '#111827',
+    includeFontPadding: false,
   },
+  // Card hint — Figma: Corben 11px #9CA3AF
   cardHint: {
-    fontFamily: fontFamily.body,
+    fontFamily: 'Corben_400Regular',
     fontSize: 11,
+    lineHeight: 16.5,
     color: '#9CA3AF',
   },
+
+  // Chart area — Figma: #F7F8F4 bg radius 10
   chart: {
     height: 86,
-    borderRadius: radius.md,
-    backgroundColor: '#F6F4F8',
+    borderRadius: 10,
+    backgroundColor: '#F7F8F4',
     overflow: 'hidden',
     position: 'relative',
     marginBottom: spacing.sm,
@@ -554,7 +587,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emptyChartText: {
-    fontFamily: fontFamily.body,
+    fontFamily: 'Jost_400Regular',
     fontSize: 12,
     color: '#C0C5D4',
   },
@@ -563,91 +596,103 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#4F4052',
+    backgroundColor: '#757D5C',
   },
   activeDot: {
     width: 11,
     height: 11,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: '#D8D0DF',
-    backgroundColor: '#665672',
+    borderColor: '#DBDFD4',
+    backgroundColor: '#757D5C',
   },
+
+  // Week axis — Figma: Corben 10px #757D5C
   weekAxis: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   weekDay: {
-    fontFamily: fontFamily.body,
+    fontFamily: 'Corben_400Regular',
     fontSize: 10,
-    color: '#A69CAF',
+    lineHeight: 15,
+    color: '#757D5C',
   },
   weekDayActive: {
-    color: '#4F4052',
-    fontFamily: fontFamily.bodyMedium,
+    fontFamily: 'Corben_400Regular',
+    color: '#4A5240',
   },
-  monthStats: {
+
+  // ── This Month stats ──────────────────────────────────────────────────
+
+  // Three mini stat tiles — Figma: #F7F4F8 bg radius 10
+  statRow: {
     flexDirection: 'row',
     gap: spacing.sm,
     marginBottom: spacing.md,
   },
-  statMini: {
+  statTile: {
     flex: 1,
-    borderRadius: radius.sm,
     backgroundColor: '#F7F4F8',
+    borderRadius: 10,
     paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
     alignItems: 'center',
   },
+  // Stat number — Figma: Corben 26px #263103
   statNum: {
-    fontFamily: fontFamily.playfair,
+    fontFamily: 'Corben_400Regular',
     fontSize: 26,
-    lineHeight: 28,
-    color: '#111827',
+    lineHeight: 38,
+    color: '#263103',
+    includeFontPadding: false,
   },
-  statNumGreen: {
-    color: '#76C95F',
-  },
-  statNumPurple: {
-    color: '#4A5240',
-  },
+  // Stat sub — Figma: Jost 400 10px #9CA3AF
   statSub: {
-    fontFamily: fontFamily.body,
+    fontFamily: 'Jost_400Regular',
     fontSize: 10,
+    lineHeight: 15,
     color: '#9CA3AF',
-    marginTop: 2,
   },
-  metricRowWrap: {
+
+  // Metric rows
+  metricRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.sm,
+    paddingVertical: 10,
   },
   metricDivider: {
-    height: 1,
-    backgroundColor: 'rgba(0,0,0,0.06)',
+    height: 1.27,
+    backgroundColor: 'rgba(0, 0, 0, 0.06)',
   },
+  // Metric label — Figma: Jost 400 12px #6B7280, fixed 80px width
   metricLabel: {
     width: 80,
-    fontFamily: fontFamily.body,
-    color: '#6B7280',
+    fontFamily: 'Jost_400Regular',
     fontSize: 12,
+    lineHeight: 16,
+    color: '#6B7280',
   },
-  metricBarTrack: {
+  // Bar track — Figma: rgba(0,0,0,0.07) bg, radius full
+  barTrack: {
     flex: 1,
     height: 4,
     borderRadius: 999,
-    backgroundColor: 'rgba(0,0,0,0.07)',
-    marginHorizontal: spacing.sm,
+    backgroundColor: 'rgba(0, 0, 0, 0.07)',
     overflow: 'hidden',
+    marginHorizontal: spacing.sm,
   },
-  metricBarFill: {
+  barFill: {
     height: '100%',
     borderRadius: 999,
   },
+  // Metric value — Figma: Jost 500 12px #111827, right-aligned, fixed 58px width
   metricValue: {
-    width: 70,
+    width: 58,
     textAlign: 'right',
-    fontFamily: fontFamily.bodyMedium,
-    color: '#111827',
+    fontFamily: 'Jost_500Medium',
     fontSize: 12,
+    lineHeight: 16,
+    color: '#111827',
   },
 });
