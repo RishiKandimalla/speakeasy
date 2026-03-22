@@ -5,7 +5,10 @@ from app.db.client import get_client
 
 def _is_missing_jobs_is_public_error(exc: Exception) -> bool:
     msg = str(exc)
-    return "PGRST204" in msg and "is_public" in msg and "jobs" in msg
+    missing_column = "is_public" in msg and "jobs" in msg
+    # Covers both PostgREST schema-cache errors (PGRST204) and raw
+    # Postgres undefined-column errors (42703).
+    return missing_column and ("PGRST204" in msg or "42703" in msg or "does not exist" in msg)
 
 
 def create_job(user_id: str, upload_id: str, options: dict, context: dict | None) -> dict:
