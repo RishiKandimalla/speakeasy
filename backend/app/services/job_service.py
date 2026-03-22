@@ -72,9 +72,7 @@ def get_job_result(job_id: str, user_id: str) -> JobResultResponse:
     assets = {}
     for asset_key, bucket_field, path_field in [
         ("edited_video", "edited_video_bucket", "edited_video_path"),
-        ("captions", "caption_bucket", "caption_path"),
-        ("transcript", "transcript_bucket", "transcript_path"),
-        ("thumbnail", "thumbnail_bucket", "thumbnail_path"),
+        ("audio", "audio_bucket", "audio_path"),
     ]:
         bucket = outputs.get(bucket_field)
         path = outputs.get(path_field)
@@ -89,4 +87,5 @@ def get_job_result(job_id: str, user_id: str) -> JobResultResponse:
         scores=analysis.get("scores"),
         metrics=analysis.get("metrics"),
         feedback=analysis.get("feedback"),
+        tone=analysis.get("tone"),
     )
