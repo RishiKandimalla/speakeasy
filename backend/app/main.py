@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from app.api.clips import router as clips_router
 from app.api.jobs import router as jobs_router
 from app.api.uploads import router as uploads_router
 
@@ -15,6 +16,7 @@ app.add_middleware(
 
 app.include_router(jobs_router, prefix="/v1")
 app.include_router(uploads_router, prefix="/v1")
+app.include_router(clips_router, prefix="/v1")
 
 
 @app.exception_handler(404)

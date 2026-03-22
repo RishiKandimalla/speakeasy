@@ -49,3 +49,5 @@ yarn-error.*
 /frontend/ios
 /frontend/android
 .claude
+
+# /video_clips/

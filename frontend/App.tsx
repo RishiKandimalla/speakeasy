@@ -11,6 +11,7 @@ import type { HomeStackParamList } from './src/navigation/types';
 import { AnalysisLoadingScreen } from './src/screens/AnalysisLoadingScreen';
 import { AnalysisResultsScreen } from './src/screens/AnalysisResultsScreen';
 import { CreateVideoScreen } from './src/screens/CreateVideoScreen';
+import { FeedScreen } from './src/screens/FeedScreen';
 import { HomeDashboardScreen } from './src/screens/HomeDashboardScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { RecordVideoScreen } from './src/screens/RecordVideoScreen';
@@ -100,6 +101,16 @@ function RootNavigator() {
         tabBarInactiveTintColor: colors.textMuted,
       }}
     >
+      <Tab.Screen
+        name="Feed"
+        component={FeedScreen}
+        options={{
+          title: 'Feed',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="play-circle-outline" size={size} color={color} />
+          ),
+        }}
+      />
       <Tab.Screen
         name="Home"
         component={HomeStackNavigator}

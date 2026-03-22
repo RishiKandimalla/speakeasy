@@ -151,3 +151,12 @@ def create_upload(user_id: str, bucket: str, path: str, filename: str | None, co
 def update_upload_status(upload_id: str, status: str) -> None:
     db = get_client()
     db.table("uploads").update({"status": status}).eq("id", upload_id).execute()
+
+
+def list_clips(category: str | None = None) -> list[dict]:
+    db = get_client()
+    query = db.table("clips").select("*")
+    if category and category != "both":
+        query = query.eq("category", category)
+    result = query.order("created_at", desc=True).execute()
+    return result.data or []

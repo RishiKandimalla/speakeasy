@@ -10,6 +10,16 @@ export type UploadResponse = {
   video_url: string | null;
 };
 
+export type ClipCategory = 'minecraft' | 'drone' | 'both';
+
+export type ClipResponse = {
+  id: string;
+  category: Exclude<ClipCategory, 'both'>;
+  duration_s: number | null;
+  file_size: number | null;
+  video_url: string;
+};
+
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const { data: { session } } = await supabase.auth.getSession();
   const headers: Record<string, string> = { Accept: 'application/json' };
@@ -90,4 +100,15 @@ export async function getUpload(uploadId: string): Promise<UploadResponse> {
   });
   const body = await parseJsonOrThrow(res);
   return body as UploadResponse;
+}
+
+export async function listClips(category: ClipCategory = 'both'): Promise<ClipResponse[]> {
+  const params = new URLSearchParams();
+  params.set('category', category);
+  const res = await fetch(`${API_BASE}/v1/clips?${params.toString()}`, {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+  });
+  const body = await parseJsonOrThrow(res);
+  return body as ClipResponse[];
 }
