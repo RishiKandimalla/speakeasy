@@ -14,8 +14,14 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   const { data: { session } } = await supabase.auth.getSession();
   const headers: Record<string, string> = { Accept: 'application/json' };
   // #region agent log
-  const _tokenPreview = session?.access_token ? `${session.access_token.substring(0, 20)}...len=${session.access_token.length}` : 'NO_TOKEN';
-  fetch('http://127.0.0.1:7921/ingest/d49ba14d-c13e-4e83-98b7-1d5f20ece947',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'636875'},body:JSON.stringify({sessionId:'636875',location:'api.ts:getAuthHeaders',message:'session state',data:{hasSession:!!session,hasToken:!!session?.access_token,tokenPreview:_tokenPreview,userId:session?.user?.id},timestamp:Date.now()})}).catch(()=>{});
+  if (session?.access_token) {
+    try {
+      const _hdr = JSON.parse(atob(session.access_token.split('.')[0]));
+      console.log('[DEBUG-636875] JWT header:', JSON.stringify(_hdr));
+    } catch (_e) { console.log('[DEBUG-636875] Could not decode JWT header'); }
+  } else {
+    console.log('[DEBUG-636875] No access token in session');
+  }
   // #endregion
   if (session?.access_token) {
     headers['Authorization'] = `Bearer ${session.access_token}`;

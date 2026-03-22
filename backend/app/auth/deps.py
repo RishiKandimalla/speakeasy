@@ -2,17 +2,18 @@ import os
 from functools import lru_cache
 
 import jwt
+from jwt import PyJWKClient
 from fastapi import Header, HTTPException
 from dotenv import load_dotenv
 
 load_dotenv()
 
-ALGORITHMS = ["HS256", "HS384", "HS512"]
-
 
 @lru_cache(maxsize=1)
-def _get_jwt_secret() -> str:
-    return os.environ["SUPABASE_JWT_SECRET"]
+def _get_jwk_client() -> PyJWKClient:
+    supabase_url = os.environ["SUPABASE_URL"].rstrip("/")
+    jwks_url = f"{supabase_url}/auth/v1/.well-known/jwks.json"
+    return PyJWKClient(jwks_url, cache_keys=True)
 
 
 def get_current_user_id(authorization: str = Header(...)) -> str:
@@ -22,10 +23,11 @@ def get_current_user_id(authorization: str = Header(...)) -> str:
 
     token = authorization[len("Bearer "):]
     try:
+        signing_key = _get_jwk_client().get_signing_key_from_jwt(token)
         payload = jwt.decode(
             token,
-            _get_jwt_secret(),
-            algorithms=ALGORITHMS,
+            signing_key.key,
+            algorithms=["ES256", "RS256", "HS256"],
             audience="authenticated",
         )
     except jwt.ExpiredSignatureError:
