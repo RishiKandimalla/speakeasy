@@ -95,6 +95,21 @@ export function HomeDashboardScreen() {
   const madeVideoToday = stats?.made_video_today ?? false;
   const avg = stats?.weekly_averages;
   const chartPoints = stats ? buildChartPoints(stats.weekly_history) : [];
+
+  const weeklyScoreSum = (() => {
+    if (!stats?.weekly_history) return null;
+    const monday = getWeekStartMonday();
+    let sum = 0;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      const dateStr = d.toISOString().split('T')[0];
+      const entry = stats.weekly_history.find(e => e.date === dateStr);
+      const score = entry?.scores?.overall;
+      if (score != null) sum += score;
+    }
+    return sum + (stats.weekly_reaction_points ?? 0);
+  })();
   const activeChartPoints = chartPoints.filter((p): p is { left: number; top: number } => p !== null);
 
   const fillerPct =
@@ -150,7 +165,7 @@ export function HomeDashboardScreen() {
               <View style={styles.streakFooter}>
                 <Text style={styles.streakMeta}>Weekly score</Text>
                 <View style={styles.weeklyScoreRow}>
-                  <Text style={styles.weeklyScorePts}>{avg?.overall_score != null ? `${Math.round(avg.overall_score * 6.56)} pts` : '-- pts'}</Text>
+                  <Text style={styles.weeklyScorePts}>{weeklyScoreSum != null ? `${weeklyScoreSum} pts` : '-- pts'}</Text>
                   <View style={styles.todayBadge}>
                     <Text style={styles.todayBadgeText}>+68 today</Text>
                   </View>
@@ -232,37 +247,6 @@ export function HomeDashboardScreen() {
               </View>
             </View>
 
-            {/* Most recent recording */}
-            <View>
-              <Text style={styles.sectionLabel}>Most recent</Text>
-              <View style={styles.card}>
-                {/* Video thumbnail placeholder */}
-                <View style={styles.videoThumb}>
-                  <View style={styles.playBtn}>
-                    <Ionicons name="play" size={24} color="white" />
-                  </View>
-                  <View style={styles.durationBadge}>
-                    <Text style={styles.durationText}>3:48</Text>
-                  </View>
-                </View>
-                <Text style={styles.recordingTitle}>My Career Goals</Text>
-                <Text style={styles.recordingDate}>March 20, 2026</Text>
-                <View style={styles.tagsRow}>
-                  <View style={styles.tag}>
-                    <View style={[styles.tagDot, { backgroundColor: '#639922' }]} />
-                    <Text style={styles.tagText}>87 clarity</Text>
-                  </View>
-                  <View style={styles.tag}>
-                    <View style={[styles.tagDot, { backgroundColor: '#EF9F27' }]} />
-                    <Text style={styles.tagText}>12 fillers</Text>
-                  </View>
-                  <View style={styles.tag}>
-                    <View style={[styles.tagDot, { backgroundColor: '#B9CCA3' }]} />
-                    <Text style={styles.tagText}>145 wpm</Text>
-                  </View>
-                </View>
-              </View>
-            </View>
 
             {/* Analytics */}
             <View style={styles.card}>
