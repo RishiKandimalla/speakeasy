@@ -112,6 +112,18 @@ def get_upload(upload_id: str) -> dict | None:
     return result.data
 
 
+def list_uploads(limit: int = 50) -> list[dict]:
+    db = get_client()
+    result = (
+        db.table("uploads")
+        .select("*")
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    return result.data or []
+
+
 def create_upload(user_id: str, bucket: str, path: str, filename: str | None, content_type: str | None, file_size: int | None) -> dict:
     db = get_client()
     result = (

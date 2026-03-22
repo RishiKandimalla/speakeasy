@@ -1,6 +1,7 @@
 import * as MediaLibrary from 'expo-media-library';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Pressable,
   ScrollView,
@@ -11,6 +12,7 @@ import {
 
 import { VideoPreview } from '../components/VideoPreview';
 import type { HomeStackScreenProps } from '../navigation/types';
+import { uploadVideo } from '../lib/api';
 import { persistVideoFromUri } from '../lib/savedVideos';
 import { colors, radius, spacing, typography } from '../theme';
 
@@ -20,6 +22,15 @@ export function UploadedVideoReviewScreen({
 }: HomeStackScreenProps<'UploadedVideoReview'>) {
   const videoUri = route.params.videoUri;
   const [playbackPlaying, setPlaybackPlaying] = useState(false);
+  const [uploadingToServer, setUploadingToServer] = useState(false);
+
+  const pickedFilename = useMemo(() => {
+    const clean = videoUri.split('?')[0] ?? videoUri;
+    const slash = clean.lastIndexOf('/');
+    const name = slash >= 0 ? clean.slice(slash + 1) : clean;
+    if (name && /\.(mp4|mov|m4v)$/i.test(name)) return name;
+    return 'upload.mp4';
+  }, [videoUri]);
   const [mediaPermission, requestMediaPermission] = MediaLibrary.usePermissions({
     writeOnly: true,
   });
@@ -50,6 +61,22 @@ export function UploadedVideoReviewScreen({
       Alert.alert('Could not save in app', String(e));
     }
   }, [videoUri]);
+
+  const uploadToServer = useCallback(async () => {
+    if (uploadingToServer) return;
+    setUploadingToServer(true);
+    try {
+      const result = await uploadVideo(videoUri, pickedFilename);
+      Alert.alert(
+        'Uploaded',
+        `Video is on the server. Open the Cloud tab to view it.\n\nUpload ID: ${result.upload_id.slice(0, 8)}…`,
+      );
+    } catch (e) {
+      Alert.alert('Upload failed', String(e));
+    } finally {
+      setUploadingToServer(false);
+    }
+  }, [videoUri, pickedFilename, uploadingToServer]);
 
   const analyze = useCallback(() => {
     navigation.replace('AnalysisLoading', { videoUri });
@@ -83,6 +110,17 @@ export function UploadedVideoReviewScreen({
         </Pressable>
         <Pressable style={styles.btnSecondary} onPress={() => void keepInApp()}>
           <Text style={styles.btnSecondaryText}>Keep in app</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.btnSecondary, uploadingToServer && styles.btnDisabled]}
+          onPress={() => void uploadToServer()}
+          disabled={uploadingToServer}
+        >
+          {uploadingToServer ? (
+            <ActivityIndicator color={colors.primary} />
+          ) : (
+            <Text style={styles.btnSecondaryText}>Upload to server</Text>
+          )}
         </Pressable>
         <Pressable style={styles.btnSecondary} onPress={discard}>
           <Text style={styles.btnSecondaryText}>Discard</Text>
@@ -136,5 +174,8 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.primary,
     fontWeight: '600',
+  },
+  btnDisabled: {
+    opacity: 0.5,
   },
 });

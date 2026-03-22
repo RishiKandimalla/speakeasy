@@ -17,6 +17,7 @@ import {
 import { VideoPreview } from '../components/VideoPreview';
 import type { HomeStackParamList } from '../navigation/types';
 import { usePermissions } from '../hooks/usePermissions';
+import { uploadVideo } from '../lib/api';
 import { persistVideoFromUri } from '../lib/savedVideos';
 import { colors, radius, spacing, typography } from '../theme';
 
@@ -36,6 +37,7 @@ export function RecordVideoScreen() {
   const [cameraReady, setCameraReady] = useState(false);
   const [videoUri, setVideoUri] = useState<string | null>(null);
   const [playbackPlaying, setPlaybackPlaying] = useState(false);
+  const [uploadingToServer, setUploadingToServer] = useState(false);
 
   useEffect(() => {
     if (phase === 'idle') {
@@ -105,6 +107,22 @@ export function RecordVideoScreen() {
       Alert.alert('Could not save in app', String(e));
     }
   }, [videoUri]);
+
+  const uploadToServer = useCallback(async () => {
+    if (!videoUri || uploadingToServer) return;
+    setUploadingToServer(true);
+    try {
+      const result = await uploadVideo(videoUri, 'recording.mp4');
+      Alert.alert(
+        'Uploaded',
+        `Video is on the server. Open the Cloud tab to view it.\n\nUpload ID: ${result.upload_id.slice(0, 8)}…`,
+      );
+    } catch (e) {
+      Alert.alert('Upload failed', String(e));
+    } finally {
+      setUploadingToServer(false);
+    }
+  }, [videoUri, uploadingToServer]);
 
   const analyze = useCallback(() => {
     if (!videoUri) return;
@@ -198,6 +216,17 @@ export function RecordVideoScreen() {
             </Pressable>
             <Pressable style={styles.btnSecondary} onPress={() => void keepInApp()}>
               <Text style={styles.btnSecondaryText}>Keep in app</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.btnSecondary, uploadingToServer && styles.btnDisabled]}
+              onPress={() => void uploadToServer()}
+              disabled={uploadingToServer}
+            >
+              {uploadingToServer ? (
+                <ActivityIndicator color={colors.primary} />
+              ) : (
+                <Text style={styles.btnSecondaryText}>Upload to server</Text>
+              )}
             </Pressable>
             <Pressable style={styles.btnSecondary} onPress={discardRecording}>
               <Text style={styles.btnSecondaryText}>Discard</Text>

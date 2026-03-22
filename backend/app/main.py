@@ -1,9 +1,17 @@
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.api.jobs import router as jobs_router
 from app.api.uploads import router as uploads_router
 
 app = FastAPI(title="Speakeasy Processing API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(jobs_router, prefix="/v1")
 app.include_router(uploads_router, prefix="/v1")
