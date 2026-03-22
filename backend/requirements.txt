@@ -10,3 +10,4 @@ PyJWT[crypto]
 assemblyai
 google-genai
 wordfreq
+hume

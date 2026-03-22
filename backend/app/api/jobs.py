@@ -1,9 +1,18 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from app.auth.deps import get_current_user_id
-from app.models.job import CreateJobRequest, CreateJobResponse, JobStatusResponse, JobResultResponse
+from app.models.job import CreateJobRequest, CreateJobResponse, JobStatusResponse, JobResultResponse, JobSummaryResponse
 from app.services import job_service
 
 router = APIRouter()
+
+
+@router.get("/jobs", response_model=list[JobSummaryResponse])
+def list_jobs(
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    user_id: str = Depends(get_current_user_id),
+):
+    return job_service.list_jobs(user_id=user_id, limit=limit, offset=offset)
 
 
 @router.post("/jobs", response_model=CreateJobResponse, status_code=201)

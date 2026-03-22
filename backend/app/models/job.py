@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any
 from pydantic import BaseModel
 
@@ -22,6 +23,22 @@ class JobStatusResponse(BaseModel):
     error_message: str | None = None
 
 
+class JobSummaryResponse(BaseModel):
+    job_id: str
+    status: str
+    stage: str
+    progress: int
+    created_at: datetime
+    upload_id: str
+    # Populated only when status == "completed"
+    video_url: str | None = None
+    scores: dict[str, Any] | None = None
+    metrics: dict[str, Any] | None = None
+    feedback: dict[str, Any] | None = None
+    tone: dict[str, Any] | None = None
+    transcript: dict[str, Any] | None = None
+
+
 class JobResultResponse(BaseModel):
     job_id: str
     status: str
@@ -30,3 +47,4 @@ class JobResultResponse(BaseModel):
     scores: dict[str, Any] | None = None
     metrics: dict[str, Any] | None = None
     feedback: dict[str, Any] | None = None
+    tone: dict[str, Any] | None = None
