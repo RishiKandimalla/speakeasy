@@ -33,6 +33,7 @@ import { ProfileScreen } from './src/screens/ProfileScreen';
 import { RecordVideoScreen } from './src/screens/RecordVideoScreen';
 import { UploadedVideoReviewScreen } from './src/screens/UploadedVideoReviewScreen';
 import { authColors, colors } from './src/theme';
+import { initPublishedJobs } from './src/lib/publishedJobs';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
@@ -216,6 +217,10 @@ function RootNavigator() {
 }
 
 export default function App() {
+  // Kick off async load of persisted published-job IDs as early as possible.
+  // No need to await — ProfileScreen's useFocusEffect re-renders after it resolves.
+  initPublishedJobs();
+
   const [fontsLoaded] = useFonts({
     ...Ionicons.font,
     Jost_400Regular,

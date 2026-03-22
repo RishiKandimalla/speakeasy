@@ -446,6 +446,7 @@ export function ShareResultsScreen({
 
   const goProfile = useCallback(() => {
     navigation.reset({ index: 0, routes: [{ name: 'HomeDashboard' }] });
+    navigation.getParent()?.navigate('Profile');
   }, [navigation]);
 
   const handleCancel = useCallback(() => {
@@ -476,7 +477,7 @@ export function ShareResultsScreen({
   if (outcome === 'saved') {
     return (
       <SavedConfirmation
-        onViewSaved={goHome}
+        onViewSaved={goProfile}
         onGoHome={goHome}
       />
     );

@@ -472,7 +472,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   scorePill: {
-    alignSelf: 'flex-start',
     backgroundColor: 'rgba(0,0,0,0.45)',
     borderRadius: 6,
     paddingHorizontal: 6,
@@ -480,6 +479,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+  },
+  publicBadge: {
+    backgroundColor: '#5a6b40',
+    borderRadius: 6,
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scoreDot: {
     width: 6,
