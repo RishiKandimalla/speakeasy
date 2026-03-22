@@ -89,6 +89,9 @@ export function SavedVideosScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top + spacing.md }]}>
+      <Text style={styles.eyebrow} numberOfLines={1}>
+        Library
+      </Text>
       <Text style={styles.title} numberOfLines={1}>
         Saved in app
       </Text>
@@ -155,7 +158,7 @@ export function SavedVideosScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
     backgroundColor: colors.background,
   },
   centered: {
@@ -169,6 +172,11 @@ const styles = StyleSheet.create({
     ...typography.title,
     color: colors.text,
     marginBottom: spacing.sm,
+  },
+  eyebrow: {
+    ...typography.caption,
+    color: colors.primaryMuted,
+    marginBottom: spacing.xs,
   },
   hint: {
     ...typography.caption,
@@ -198,11 +206,11 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   btnSecondary: {
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderColor: colors.border,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.md,
   },
   btnSecondaryText: {
     ...typography.caption,
@@ -211,9 +219,9 @@ const styles = StyleSheet.create({
   },
   btnDanger: {
     backgroundColor: 'rgba(229, 115, 115, 0.2)',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.md,
   },
   btnDangerText: {
     ...typography.caption,

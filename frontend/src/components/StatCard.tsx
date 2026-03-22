@@ -13,7 +13,7 @@ type StatCardProps = {
 export function StatCard({ icon, label, value, footer }: StatCardProps) {
   return (
     <View style={styles.card}>
-      <View style={styles.iconWrap} accessibilityLabel="">
+      <View style={styles.iconWrap}>
         <Ionicons name={icon} size={22} color={colors.primary} />
       </View>
       <View style={styles.textCol}>
@@ -34,19 +34,19 @@ export function StatCard({ icon, label, value, footer }: StatCardProps) {
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     backgroundColor: colors.card,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     padding: spacing.lg,
-    marginBottom: spacing.md,
-    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
     borderColor: colors.border,
     gap: spacing.md,
   },
   iconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.sm,
+    width: 50,
+    height: 50,
+    borderRadius: radius.md,
     backgroundColor: colors.cardElevated,
     alignItems: 'center',
     justifyContent: 'center',
@@ -58,10 +58,11 @@ const styles = StyleSheet.create({
   label: {
     ...typography.caption,
     color: colors.textSecondary,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
   },
   value: {
     ...typography.metric,
+    fontSize: 30,
     color: colors.text,
   },
   footer: {

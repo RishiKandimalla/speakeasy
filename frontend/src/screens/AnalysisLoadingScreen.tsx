@@ -19,9 +19,14 @@ export function AnalysisLoadingScreen({
 
   return (
     <View style={styles.root}>
-      <ActivityIndicator size="large" color={colors.primary} />
+      <View style={styles.badge}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
       <Text style={styles.title} numberOfLines={1}>
-        Analyzing…
+        Analyzing your session
+      </Text>
+      <Text style={styles.sub} numberOfLines={2}>
+        We are extracting transcript and generating speaking feedback.
       </Text>
     </View>
   );
@@ -35,9 +40,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: spacing.xxl,
   },
+  badge: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   title: {
     ...typography.headline,
-    color: colors.textSecondary,
+    color: colors.text,
     marginTop: spacing.lg,
+  },
+  sub: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: spacing.sm,
+    textAlign: 'center',
   },
 });

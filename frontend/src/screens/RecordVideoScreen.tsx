@@ -168,6 +168,9 @@ export function RecordVideoScreen() {
       style={styles.scrollView}
     >
       <View style={styles.inner}>
+        <Text style={styles.pageTitle}>Record video</Text>
+        <Text style={styles.pageSub}>Capture your session, then preview and analyze it.</Text>
+
         {phase !== 'preview' && (
           <View style={styles.cameraBox}>
             <CameraView
@@ -252,6 +255,16 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
     alignItems: 'stretch',
   },
+  pageTitle: {
+    ...typography.headline,
+    color: colors.text,
+    marginBottom: spacing.xs,
+  },
+  pageSub: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+  },
   centered: {
     flex: 1,
     backgroundColor: colors.background,
@@ -270,20 +283,22 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     alignSelf: 'center',
     aspectRatio: 3 / 4,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     overflow: 'hidden',
     backgroundColor: colors.surface,
     marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   camera: {
     flex: 1,
   },
   btn: {
     backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
+    paddingVertical: spacing.lg,
+    borderRadius: radius.lg,
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
     maxWidth: 400,
     alignSelf: 'center',
     width: '100%',
@@ -300,12 +315,12 @@ const styles = StyleSheet.create({
     color: colors.background,
   },
   btnSecondary: {
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderColor: colors.border,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
+    paddingVertical: spacing.lg,
+    borderRadius: radius.lg,
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
     maxWidth: 400,
     alignSelf: 'center',
     width: '100%',

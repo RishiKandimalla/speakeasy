@@ -123,7 +123,7 @@ export function AnalysisResultsScreen({
         <Ionicons name="trophy" size={28} color={colors.primary} />
       </View>
       <Text style={styles.pageTitle} numberOfLines={2}>
-        Analysis complete
+        Session insights
       </Text>
 
       <Text style={styles.scoreLabel} numberOfLines={1}>
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   },
   trophyRow: {
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
   pageTitle: {
     ...typography.title,
@@ -237,10 +237,10 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     backgroundColor: colors.card,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     padding: spacing.lg,
-    marginBottom: spacing.md,
-    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
     borderColor: colors.border,
   },
   metricTop: {
@@ -311,9 +311,9 @@ const styles = StyleSheet.create({
   },
   transcriptBox: {
     backgroundColor: colors.card,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     padding: spacing.lg,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderColor: colors.border,
   },
   transcriptText: {
@@ -348,10 +348,10 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.text,
     backgroundColor: colors.card,
-    borderRadius: radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.lg,
+    borderWidth: 1,
     borderColor: colors.border,
-    padding: spacing.md,
+    padding: spacing.lg,
     minHeight: 88,
     textAlignVertical: 'top',
     marginBottom: spacing.lg,
@@ -362,8 +362,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.sm,
     backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
+    paddingVertical: spacing.lg,
+    borderRadius: radius.lg,
     marginBottom: spacing.sm,
   },
   primaryBtnText: {
@@ -377,10 +377,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderColor: colors.primary,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
+    paddingVertical: spacing.lg,
+    borderRadius: radius.lg,
     marginBottom: spacing.md,
   },
   secondaryBtnText: {

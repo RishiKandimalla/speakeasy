@@ -81,9 +81,9 @@ export function RecordingRow({ item, index }: RecordingRowProps) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.card,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    borderWidth: 1,
     borderColor: colors.border,
   },
   rowTop: {
@@ -92,9 +92,9 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   thumb: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.sm,
+    width: 52,
+    height: 52,
+    borderRadius: radius.md,
     backgroundColor: colors.cardElevated,
     alignItems: 'center',
     justifyContent: 'center',
@@ -120,9 +120,9 @@ const styles = StyleSheet.create({
   },
   chip: {
     backgroundColor: colors.cardElevated,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
-    borderRadius: radius.sm,
+    borderRadius: radius.md,
     maxWidth: '100%',
   },
   chipInner: {

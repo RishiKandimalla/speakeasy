@@ -93,6 +93,8 @@ export function UploadedVideoReviewScreen({
       style={styles.scrollView}
     >
       <View style={styles.inner}>
+        <Text style={styles.pageTitle}>Review upload</Text>
+        <Text style={styles.pageSub}>Preview your clip, then choose to analyze or save it.</Text>
         <VideoPreview uri={videoUri} isPlaying={playbackPlaying} />
         <Pressable
           style={styles.btnSecondary}
@@ -144,12 +146,22 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
     alignItems: 'stretch',
   },
+  pageTitle: {
+    ...typography.headline,
+    color: colors.text,
+    marginBottom: spacing.xs,
+  },
+  pageSub: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+  },
   btn: {
     backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
+    paddingVertical: spacing.lg,
+    borderRadius: radius.lg,
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
     maxWidth: 400,
     alignSelf: 'center',
     width: '100%',
@@ -160,12 +172,12 @@ const styles = StyleSheet.create({
     color: colors.background,
   },
   btnSecondary: {
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderColor: colors.border,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
+    paddingVertical: spacing.lg,
+    borderRadius: radius.lg,
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
     maxWidth: 400,
     alignSelf: 'center',
     width: '100%',

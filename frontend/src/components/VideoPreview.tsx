@@ -32,13 +32,15 @@ export function VideoPreview({ uri, isPlaying }: VideoPreviewProps) {
 const styles = StyleSheet.create({
   wrap: {
     width: '100%',
-    maxHeight: 280,
-    borderRadius: radius.md,
+    maxHeight: 300,
+    borderRadius: radius.lg,
     overflow: 'hidden',
     backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   video: {
     width: '100%',
-    height: 240,
+    height: 250,
   },
 });

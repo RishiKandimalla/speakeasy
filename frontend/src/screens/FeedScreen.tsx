@@ -81,7 +81,7 @@ function FeedVideoItem({
     <View style={[styles.page, { height }]}>
       <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" />
       <View style={styles.videoOverlay}>
-        <Text style={styles.chipText}>{clip.category === 'minecraft' ? 'Minecraft' : 'Drone'}</Text>
+        <Text style={styles.chipText}>{clip.category === 'minecraft' ? 'Minecraft clip' : 'Drone clip'}</Text>
       </View>
     </View>
   );
@@ -252,12 +252,14 @@ const styles = StyleSheet.create({
   },
   videoOverlay: {
     position: 'absolute',
-    left: spacing.lg,
+    left: spacing.xl,
     bottom: spacing.xxl * 2,
     backgroundColor: colors.overlay,
-    borderRadius: radius.full,
-    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   chipText: {
     ...typography.caption,
@@ -270,14 +272,16 @@ const styles = StyleSheet.create({
     zIndex: 2,
     flexDirection: 'row',
     backgroundColor: colors.overlay,
-    borderRadius: radius.full,
+    borderRadius: radius.lg,
     padding: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
     gap: spacing.xs,
   },
   toggleBtn: {
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    borderRadius: radius.full,
+    borderRadius: radius.md,
   },
   toggleBtnActive: {
     backgroundColor: colors.primary,

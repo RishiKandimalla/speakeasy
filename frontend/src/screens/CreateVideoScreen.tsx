@@ -64,12 +64,15 @@ export function CreateVideoScreen() {
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={styles.title} numberOfLines={2}>
-        Create new video
-      </Text>
-      <Text style={styles.sub} numberOfLines={2}>
-        Record or upload
-      </Text>
+      <View style={styles.hero}>
+        <Text style={styles.eyebrow}>Create</Text>
+        <Text style={styles.title} numberOfLines={2}>
+          New speaking session
+        </Text>
+        <Text style={styles.sub} numberOfLines={3}>
+          Pick how you want to begin. You can record live or upload an existing clip.
+        </Text>
+      </View>
 
       <Pressable
         style={styles.card}
@@ -121,6 +124,14 @@ const styles = StyleSheet.create({
     padding: spacing.xxl,
     paddingBottom: spacing.xxl * 2,
   },
+  hero: {
+    marginBottom: spacing.xl,
+  },
+  eyebrow: {
+    ...typography.caption,
+    color: colors.primaryMuted,
+    marginBottom: spacing.sm,
+  },
   headerLink: {
     marginRight: spacing.sm,
     maxWidth: 140,
@@ -133,27 +144,26 @@ const styles = StyleSheet.create({
   title: {
     ...typography.title,
     color: colors.text,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
   },
   sub: {
     ...typography.body,
     color: colors.textSecondary,
-    marginBottom: spacing.xl,
   },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.xl,
+    padding: spacing.xl,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
     borderColor: colors.border,
     gap: spacing.md,
   },
   iconCircle: {
-    width: 56,
-    height: 56,
+    width: 62,
+    height: 62,
     borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',

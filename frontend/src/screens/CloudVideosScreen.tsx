@@ -53,11 +53,14 @@ export function CloudVideosScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top + spacing.md }]}>
+      <Text style={styles.eyebrow} numberOfLines={1}>
+        Storage
+      </Text>
       <Text style={styles.title} numberOfLines={1}>
-        Cloud
+        Cloud videos
       </Text>
       <Text style={styles.hint} numberOfLines={3}>
-        Videos uploaded to the server. Pull to refresh.
+        Videos uploaded to the server. Pull down to refresh the list.
       </Text>
 
       <FlatList
@@ -146,8 +149,13 @@ export function CloudVideosScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
     backgroundColor: colors.background,
+  },
+  eyebrow: {
+    ...typography.caption,
+    color: colors.primaryMuted,
+    marginBottom: spacing.xs,
   },
   title: {
     ...typography.title,
@@ -167,9 +175,9 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: colors.card,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    borderWidth: 1,
     borderColor: colors.border,
   },
   rowTop: {
@@ -178,9 +186,9 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   thumb: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.sm,
+    width: 52,
+    height: 52,
+    borderRadius: radius.md,
     backgroundColor: colors.cardElevated,
     alignItems: 'center',
     justifyContent: 'center',
@@ -220,11 +228,11 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   btnSecondary: {
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderColor: colors.border,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.md,
   },
   btnSecondaryText: {
     ...typography.caption,

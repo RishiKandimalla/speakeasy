@@ -58,9 +58,12 @@ export function HomeDashboardScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
-        <Text style={styles.brand} numberOfLines={1}>
-          Speakeasy
-        </Text>
+        <View style={styles.headerLeft}>
+          <Text style={styles.eyebrow}>Daily practice</Text>
+          <Text style={styles.brand} numberOfLines={1}>
+            Speakeasy
+          </Text>
+        </View>
         <View style={styles.headerRight}>
           <Pressable
             hitSlop={12}
@@ -90,11 +93,12 @@ export function HomeDashboardScreen() {
         accessibilityLabel="Record new video"
       >
         <View style={styles.heroTextCol}>
+          <Text style={styles.heroEyebrow}>Ready for a new run?</Text>
           <Text style={styles.heroTitle} numberOfLines={2}>
-            Record new video
+            Record a new speaking session
           </Text>
           <Text style={styles.heroSub} numberOfLines={2}>
-            Practice and get feedback
+            Practice, upload, and get instant filler-word feedback.
           </Text>
         </View>
         <View style={styles.heroPlus}>
@@ -133,21 +137,28 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   root: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     marginBottom: spacing.lg,
     gap: spacing.md,
   },
-  brand: {
-    ...typography.title,
-    fontSize: 24,
-    color: colors.text,
+  headerLeft: {
     flex: 1,
     minWidth: 0,
+  },
+  eyebrow: {
+    ...typography.caption,
+    color: colors.textMuted,
+    marginBottom: spacing.xs,
+  },
+  brand: {
+    ...typography.title,
+    fontSize: 32,
+    color: colors.text,
   },
   headerRight: {
     flexDirection: 'row',
@@ -156,17 +167,21 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   iconBtn: {
-    padding: spacing.xs,
+    padding: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   hero: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.cardElevated,
-    borderRadius: radius.lg,
-    padding: spacing.xl,
+    backgroundColor: colors.card,
+    borderRadius: radius.xl,
+    padding: spacing.xxl,
     marginBottom: spacing.xl,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderColor: colors.primary,
     gap: spacing.md,
   },
@@ -176,12 +191,18 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     ...typography.title,
+    fontSize: 26,
     color: colors.text,
+  },
+  heroEyebrow: {
+    ...typography.caption,
+    color: colors.primaryMuted,
+    marginBottom: spacing.sm,
   },
   heroSub: {
     ...typography.caption,
     color: colors.textSecondary,
-    marginTop: spacing.xs,
+    marginTop: spacing.sm,
   },
   heroPlus: {
     width: 52,

@@ -13,8 +13,9 @@ export function AppHeading({ title = 'Speakeasy' }: AppHeadingProps) {
 const styles = StyleSheet.create({
   title: {
     ...typography.title,
-    fontSize: 28,
+    fontSize: 30,
+    letterSpacing: 0.3,
     color: colors.text,
-    marginBottom: 12,
+    marginBottom: 14,
   },
 });
