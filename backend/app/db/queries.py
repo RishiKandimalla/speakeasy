@@ -97,19 +97,19 @@ def upsert_job_analysis(job_id: str, analysis: dict) -> None:
 def get_job_outputs(job_id: str) -> dict | None:
     db = get_client()
     result = db.table("job_outputs").select("*").eq("job_id", job_id).maybe_single().execute()
-    return result.data
+    return result.data if result else None
 
 
 def get_job_analysis(job_id: str) -> dict | None:
     db = get_client()
     result = db.table("job_analysis").select("*").eq("job_id", job_id).maybe_single().execute()
-    return result.data
+    return result.data if result else None
 
 
 def get_upload(upload_id: str) -> dict | None:
     db = get_client()
     result = db.table("uploads").select("*").eq("id", upload_id).maybe_single().execute()
-    return result.data
+    return result.data if result else None
 
 
 def list_uploads(limit: int = 50) -> list[dict]:
