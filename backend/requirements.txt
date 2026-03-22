@@ -8,4 +8,6 @@ httpx
 python-multipart
 PyJWT[crypto]
 assemblyai
-google-generativeai
+google-genai
+wordfreq
+hume

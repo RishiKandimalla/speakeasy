@@ -74,6 +74,19 @@ def mark_job_completed(job_id: str) -> None:
     }).eq("id", job_id).execute()
 
 
+def list_jobs(user_id: str, limit: int = 20, offset: int = 0) -> list[dict]:
+    db = get_client()
+    result = (
+        db.table("jobs")
+        .select("id, status, stage, progress, created_at, upload_id")
+        .eq("user_id", user_id)
+        .order("created_at", desc=True)
+        .range(offset, offset + limit - 1)
+        .execute()
+    )
+    return result.data or []
+
+
 def find_next_queued_job() -> dict | None:
     db = get_client()
     result = (
