@@ -1,0 +1,13 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args:
+    - build
+    - -t
+    - us-east1-docker.pkg.dev/speakeasy-490921/cloud-run-source-deploy/speakeasy-worker:latest
+    - -f
+    - Dockerfile.worker
+    - .
+images:
+- us-east1-docker.pkg.dev/speakeasy-490921/cloud-run-source-deploy/speakeasy-worker:latest
+options:
+  logging: CLOUD_LOGGING_ONLY
