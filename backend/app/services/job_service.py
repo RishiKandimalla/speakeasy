@@ -60,6 +60,7 @@ def list_jobs(user_id: str, limit: int = 20, offset: int = 0) -> list[JobSummary
             progress=job["progress"],
             created_at=job["created_at"],
             upload_id=job["upload_id"],
+            is_public=bool(job.get("is_public", False)),
             video_url=video_url,
             scores=scores,
             metrics=metrics,

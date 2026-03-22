@@ -12,6 +12,12 @@ def publish_post(job_id: str, user_id: str) -> PublishPostResponse:
     if job["status"] != "completed":
         raise HTTPException(status_code=409, detail="Job is not completed")
 
+    existing_post = queries.get_post_by_job_id(job_id)
+    if existing_post:
+        queries.set_job_public(job_id, True)
+        audio_url = storage_service.get_signed_url(existing_post["audio_bucket"], existing_post["audio_path"])
+        return PublishPostResponse(post_id=existing_post["id"], audio_url=audio_url)
+
     outputs = queries.get_job_outputs(job_id) or {}
     audio_bucket = outputs.get("audio_bucket")
     audio_path = outputs.get("audio_path")
@@ -31,6 +37,7 @@ def publish_post(job_id: str, user_id: str) -> PublishPostResponse:
         audio_path=audio_path,
         transcript_json=transcript_json,
     )
+    queries.set_job_public(job_id, True)
 
     audio_url = storage_service.get_signed_url(audio_bucket, audio_path)
     return PublishPostResponse(post_id=post["id"], audio_url=audio_url)
@@ -65,6 +72,11 @@ def get_discovery_feed(user_id: str, limit: int = 10) -> list[FeedPostResponse]:
         exclude_user_id=user_id,
         exclude_post_ids=viewed_ids or None,
     )
+    return _posts_to_response(posts)
+
+
+def get_user_posts(user_id: str, limit: int = 20, offset: int = 0) -> list[FeedPostResponse]:
+    posts = queries.list_user_posts(user_id=user_id, limit=limit, offset=offset)
     return _posts_to_response(posts)
 
 

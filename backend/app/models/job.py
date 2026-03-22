@@ -30,6 +30,7 @@ class JobSummaryResponse(BaseModel):
     progress: int
     created_at: datetime
     upload_id: str
+    is_public: bool = False
     # Populated only when status == "completed"
     video_url: str | None = None
     scores: dict[str, Any] | None = None

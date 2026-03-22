@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from app.auth.deps import get_current_user_id
 from app.db import queries
+from app.models.post import FeedPostResponse
 from app.models.profile import ProfileResponse
-from app.services import profile_service
+from app.services import post_service, profile_service
 
 router = APIRouter()
 
@@ -18,6 +19,15 @@ def get_profile(user_id: str):
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
     return profile
+
+
+@router.get("/profile/{user_id}/posts", response_model=list[FeedPostResponse])
+def get_profile_posts(
+    user_id: str,
+    limit: int = 20,
+    _: str = Depends(get_current_user_id),
+):
+    return post_service.get_user_posts(user_id=user_id, limit=limit)
 
 
 @router.post("/profile/{user_id}/follow", status_code=204)

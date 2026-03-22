@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,6 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { publishPost } from '../lib/api';
 import type { HomeStackScreenProps } from '../navigation/types';
 import type { AnalysisResult } from '../types/analysis';
 import { fontFamily } from '../theme';
@@ -435,6 +438,7 @@ export function ShareResultsScreen({
 
   const [privacy, setPrivacy] = useState<Privacy>('private');
   const [outcome, setOutcome] = useState<Outcome>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const goHome = useCallback(() => {
     navigation.reset({ index: 0, routes: [{ name: 'HomeDashboard' }] });
@@ -447,6 +451,25 @@ export function ShareResultsScreen({
   const handleCancel = useCallback(() => {
     navigation.goBack();
   }, [navigation]);
+
+  const handlePrimaryAction = useCallback(async () => {
+    if (submitting) return;
+    const isPublic = privacy === 'public';
+    if (!isPublic) {
+      setOutcome('saved');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await publishPost(result.job_id);
+      setOutcome('posted');
+    } catch (e) {
+      Alert.alert('Could not publish post', String(e));
+    } finally {
+      setSubmitting(false);
+    }
+  }, [privacy, result.job_id, submitting]);
 
   // ── confirmation screens ───────────────────────────────────────────────────
 
@@ -490,18 +513,25 @@ export function ShareResultsScreen({
       {/* Sticky action buttons */}
       <View style={[styles.btnWrap, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <Pressable
-          style={styles.primaryBtn}
-          onPress={() => setOutcome(isPublic ? 'posted' : 'saved')}
+          style={[styles.primaryBtn, submitting && styles.primaryBtnDisabled]}
+          onPress={handlePrimaryAction}
+          disabled={submitting}
         >
-          <Ionicons
-            name={isPublic ? 'share-social-outline' : 'lock-closed-outline'}
-            size={16}
-            color="white"
-            style={{ marginRight: 8 }}
-          />
-          <Text style={styles.primaryText}>
-            {isPublic ? 'Post to Profile' : 'Save Privately'}
-          </Text>
+          {submitting ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <>
+              <Ionicons
+                name={isPublic ? 'share-social-outline' : 'lock-closed-outline'}
+                size={16}
+                color="white"
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.primaryText}>
+                {isPublic ? 'Post to Profile' : 'Save Privately'}
+              </Text>
+            </>
+          )}
         </Pressable>
 
         <Pressable style={styles.cancelBtn} onPress={handleCancel}>
@@ -543,6 +573,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
+  },
+  primaryBtnDisabled: {
+    opacity: 0.75,
   },
   primaryText: {
     fontFamily: fontFamily.bodyMedium,

@@ -78,7 +78,7 @@ def list_jobs(user_id: str, limit: int = 20, offset: int = 0) -> list[dict]:
     db = get_client()
     result = (
         db.table("jobs")
-        .select("id, status, stage, progress, created_at, upload_id")
+        .select("id, status, stage, progress, created_at, upload_id, is_public")
         .eq("user_id", user_id)
         .order("created_at", desc=True)
         .range(offset, offset + limit - 1)
@@ -299,6 +299,25 @@ def get_post(post_id: str) -> dict | None:
     return result.data[0] if result.data else None
 
 
+def get_post_by_job_id(job_id: str) -> dict | None:
+    db = get_client()
+    result = db.table("posts").select("*").eq("job_id", job_id).limit(1).execute()
+    return result.data[0] if result.data else None
+
+
+def list_user_posts(user_id: str, limit: int = 50, offset: int = 0) -> list[dict]:
+    db = get_client()
+    result = (
+        db.table("posts")
+        .select("*")
+        .eq("user_id", user_id)
+        .order("created_at", desc=True)
+        .range(offset, offset + limit - 1)
+        .execute()
+    )
+    return result.data or []
+
+
 def get_following_recent_posts(user_id: str, limit: int = 20) -> list[dict]:
     """Returns recent posts from users the given user follows."""
     db = get_client()
@@ -339,6 +358,11 @@ def get_random_recent_posts(limit: int = 10, exclude_user_id: str | None = None,
 def record_post_view(user_id: str, post_id: str) -> None:
     db = get_client()
     db.table("post_views").upsert({"user_id": user_id, "post_id": post_id}).execute()
+
+
+def set_job_public(job_id: str, is_public: bool = True) -> None:
+    db = get_client()
+    db.table("jobs").update({"is_public": is_public}).eq("id", job_id).execute()
 
 
 def get_viewed_post_ids(user_id: str) -> list[str]:

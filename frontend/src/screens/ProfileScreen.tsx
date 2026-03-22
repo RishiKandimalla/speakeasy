@@ -1,17 +1,24 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 
 import { SlideOutMenu } from '../components/SlideOutMenu';
+import {
+  getMyProfile,
+  getProfile,
+  listJobs,
+  listUserPosts,
+  publishPost,
+  type FeedPostResponse,
+  type JobSummary,
+  type ProfileData,
+} from '../lib/api';
+import type { RootTabParamList } from '../navigation/types';
 import { authColors, fontFamily, radius, spacing } from '../theme';
-import { getMyProfile, listJobs, type ProfileData, type JobSummary } from '../lib/api';
 import type { AnalysisResult } from '../types/analysis';
-
-// Module-level caches — survive navigation, cleared on app restart
-let cachedProfile: ProfileData | null = null;
-let cachedJobs: JobSummary[] | null = null;
 
 function jobToResult(job: JobSummary): AnalysisResult {
   return {
@@ -26,42 +33,95 @@ function jobToResult(job: JobSummary): AnalysisResult {
   };
 }
 
+function transcriptPreview(post: FeedPostResponse): string {
+  const text = post.transcript_json?.text;
+  if (typeof text === 'string' && text.trim()) {
+    return text.trim().slice(0, 120);
+  }
+  return 'Transcript available';
+}
+
 export function ProfileScreen() {
   const insets = useSafeAreaInsets();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const navigation = useNavigation<any>();
+  const route = useRoute<RouteProp<RootTabParamList, 'Profile'>>();
+  const routeUserId = route.params?.userId;
+
   const [menuVisible, setMenuVisible] = useState(false);
-  const [profile, setProfile] = useState<ProfileData | null>(cachedProfile);
-  const [jobs, setJobs] = useState<JobSummary[]>(cachedJobs ?? []);
-  const [loading, setLoading] = useState(cachedProfile === null);
+  const [viewerProfile, setViewerProfile] = useState<ProfileData | null>(null);
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [jobs, setJobs] = useState<JobSummary[]>([]);
+  const [publicPosts, setPublicPosts] = useState<FeedPostResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [publishingJobId, setPublishingJobId] = useState<string | null>(null);
+
+  const isOwnProfile = routeUserId == null || (viewerProfile != null && routeUserId === viewerProfile.user_id);
 
   useFocusEffect(
     useCallback(() => {
-      const isBackground = cachedProfile !== null;
       let cancelled = false;
-      if (!isBackground) setLoading(true);
-      Promise.all([getMyProfile(), listJobs(50)])
-        .then(([p, j]) => {
+      setLoading(true);
+      void (async () => {
+        try {
+          const me = await getMyProfile();
           if (cancelled) return;
-          const completed = j.filter((job) => job.status === 'completed');
-          cachedProfile = p;
-          cachedJobs = completed;
-          setProfile(p);
-          setJobs(completed);
-        })
-        .catch(() => {})
-        .finally(() => {
-          if (!cancelled && !isBackground) setLoading(false);
-        });
-      return () => { cancelled = true; };
-    }, []),
+          setViewerProfile(me);
+          const targetUserId = routeUserId ?? me.user_id;
+          const own = targetUserId === me.user_id;
+          if (own) {
+            const userJobs = await listJobs(50);
+            if (cancelled) return;
+            setProfile(me);
+            setJobs(userJobs.filter((job) => job.status === 'completed'));
+            setPublicPosts([]);
+          } else {
+            const [targetProfile, posts] = await Promise.all([
+              getProfile(targetUserId),
+              listUserPosts(targetUserId, 50),
+            ]);
+            if (cancelled) return;
+            setProfile(targetProfile);
+            setPublicPosts(posts);
+            setJobs([]);
+          }
+        } catch (e) {
+          if (!cancelled) {
+            Alert.alert('Could not load profile', String(e));
+          }
+        } finally {
+          if (!cancelled) {
+            setLoading(false);
+          }
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [routeUserId]),
   );
 
-  const completedJobs = jobs;
+  const handlePublish = useCallback(async (jobId: string) => {
+    if (publishingJobId) return;
+    setPublishingJobId(jobId);
+    try {
+      await publishPost(jobId);
+      setJobs((prev) => prev.map((job) => (job.job_id === jobId ? { ...job, is_public: true } : job)));
+    } catch (e) {
+      Alert.alert('Could not publish post', String(e));
+    } finally {
+      setPublishingJobId(null);
+    }
+  }, [publishingJobId]);
+
   const username = profile?.username ?? '—';
   const followerCount = profile?.follower_count ?? 0;
   const followingCount = profile?.following_count ?? 0;
-  const postCount = completedJobs.length;
+  const postCount = isOwnProfile ? jobs.length : publicPosts.length;
+  const hasOwnPosts = jobs.length > 0;
+  const hasPublicPosts = publicPosts.length > 0;
+
+  const headerTitle = useMemo(() => (isOwnProfile ? 'My posts' : 'Public posts'), [isOwnProfile]);
 
   return (
     <>
@@ -76,12 +136,16 @@ export function ProfileScreen() {
         <View style={styles.header}>
           <Image source={require('../../assets/images/speakeasy_name.png')} style={styles.wordmark} resizeMode="contain" />
           <View style={styles.headerIcons}>
-            <Pressable hitSlop={8} onPress={() => navigation.navigate('Home', { screen: 'Notifications' })}>
-              <Ionicons name="notifications-outline" size={22} color="#1F2A16" />
-            </Pressable>
-            <Pressable hitSlop={8} onPress={() => setMenuVisible(true)}>
-              <Ionicons name="menu-outline" size={24} color="#1F2A16" />
-            </Pressable>
+            {isOwnProfile && (
+              <Pressable hitSlop={8} onPress={() => navigation.navigate('Home', { screen: 'Notifications' })}>
+                <Ionicons name="notifications-outline" size={22} color="#1F2A16" />
+              </Pressable>
+            )}
+            {isOwnProfile && (
+              <Pressable hitSlop={8} onPress={() => setMenuVisible(true)}>
+                <Ionicons name="menu-outline" size={24} color="#1F2A16" />
+              </Pressable>
+            )}
           </View>
         </View>
 
@@ -109,70 +173,112 @@ export function ProfileScreen() {
 
             <Text style={styles.name}>{username}</Text>
 
-            <View style={styles.actionRow}>
-              <View style={styles.outlineBtnLarge}>
-                <Text style={styles.outlineBtnText}>Edit profile</Text>
+            {isOwnProfile && (
+              <View style={styles.actionRow}>
+                <View style={styles.outlineBtnLarge}>
+                  <Text style={styles.outlineBtnText}>Edit profile</Text>
+                </View>
+                <View style={styles.outlineBtnSmall}>
+                  <Ionicons name="share-social-outline" size={16} color="#1F2A16" />
+                  <Text style={styles.outlineBtnText}>Share</Text>
+                </View>
               </View>
-              <View style={styles.outlineBtnSmall}>
-                <Ionicons name="share-social-outline" size={16} color="#1F2A16" />
-                <Text style={styles.outlineBtnText}>Share</Text>
-              </View>
-            </View>
+            )}
 
             <View style={styles.tabHeader}>
               <View style={styles.tabItemActive}>
-                <Ionicons name="grid-outline" size={16} color="#1F2A16" />
-                <Text style={styles.tabItemTextActive}>My posts</Text>
-              </View>
-              <View style={styles.tabItem}>
-                <Ionicons name="heart-outline" size={16} color="#9FA4B2" />
-                <Text style={styles.tabItemText}>Reacted to</Text>
+                <Ionicons name={isOwnProfile ? 'grid-outline' : 'musical-notes-outline'} size={16} color="#1F2A16" />
+                <Text style={styles.tabItemTextActive}>{headerTitle}</Text>
               </View>
             </View>
 
-            {completedJobs.length === 0 ? (
-              <View style={styles.emptyGrid}>
-                <Text style={styles.emptyGridText}>No videos yet. Record one to get started!</Text>
-              </View>
+            {isOwnProfile ? (
+              !hasOwnPosts ? (
+                <View style={styles.emptyGrid}>
+                  <Text style={styles.emptyGridText}>No videos yet. Record one to get started!</Text>
+                </View>
+              ) : (
+                <View style={styles.grid}>
+                  {jobs.map((job) => {
+                    const overall = job.scores?.overall;
+                    const durationS = (job.metrics as Record<string, number> | null)?.duration;
+                    const durationLabel = durationS != null
+                      ? `${Math.floor(durationS / 60)}:${String(Math.round(durationS % 60)).padStart(2, '0')}`
+                      : null;
+                    return (
+                      <Pressable
+                        key={job.job_id}
+                        style={({ pressed }) => [styles.gridTile, pressed && styles.gridTilePressed]}
+                        onPress={() =>
+                          navigation.navigate('Home', {
+                            screen: 'AnalysisResults',
+                            params: { result: jobToResult(job) },
+                          })
+                        }
+                      >
+                        <View style={styles.tileTop}>
+                          <View style={[styles.visibilityPill, job.is_public ? styles.publicPill : styles.privatePill]}>
+                            <Text style={styles.visibilityText}>{job.is_public ? 'Public' : 'Private'}</Text>
+                          </View>
+                          {durationLabel && (
+                            <View style={styles.durationPill}>
+                              <Text style={styles.durationText}>{durationLabel}</Text>
+                            </View>
+                          )}
+                        </View>
+
+                        <View style={styles.tileBottom}>
+                          {!job.is_public && (
+                            <Pressable
+                              style={styles.publishBtn}
+                              disabled={publishingJobId === job.job_id}
+                              onPress={() => void handlePublish(job.job_id)}
+                            >
+                              {publishingJobId === job.job_id ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                              ) : (
+                                <Text style={styles.publishBtnText}>Publish</Text>
+                              )}
+                            </Pressable>
+                          )}
+                          {overall != null && (
+                            <View style={styles.scorePill}>
+                              <View style={styles.scoreDot} />
+                              <Text style={styles.scoreText}>{Math.round(overall)}</Text>
+                            </View>
+                          )}
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )
             ) : (
-              <View style={styles.grid}>
-                {completedJobs.map((job) => {
-                  const overall = job.scores?.overall;
-                  const durationS = (job.metrics as Record<string, number> | null)?.duration;
-                  const durationLabel = durationS != null
-                    ? `${Math.floor(durationS / 60)}:${String(Math.round(durationS % 60)).padStart(2, '0')}`
-                    : null;
-                  return (
-                    <Pressable
-                      key={job.job_id}
-                      style={({ pressed }) => [styles.gridTile, pressed && styles.gridTilePressed]}
-                      onPress={() =>
-                        navigation.navigate('Home', {
-                          screen: 'AnalysisResults',
-                          params: { result: jobToResult(job) },
-                        })
-                      }
-                    >
-                      {durationLabel && (
-                        <View style={styles.durationPill}>
-                          <Text style={styles.durationText}>{durationLabel}</Text>
-                        </View>
-                      )}
-                      {overall != null && (
-                        <View style={styles.scorePill}>
-                          <View style={styles.scoreDot} />
-                          <Text style={styles.scoreText}>{Math.round(overall)}</Text>
-                        </View>
-                      )}
-                    </Pressable>
-                  );
-                })}
-              </View>
+              !hasPublicPosts ? (
+                <View style={styles.emptyGrid}>
+                  <Text style={styles.emptyGridText}>No public audio posts yet.</Text>
+                </View>
+              ) : (
+                <View style={styles.audioList}>
+                  {publicPosts.map((post) => (
+                    <View key={post.post_id} style={styles.audioCard}>
+                      <View style={styles.audioCardTop}>
+                        <Ionicons name="mic-outline" size={16} color="#1F2A16" />
+                        <Text style={styles.audioLabel}>Audio Post</Text>
+                        <Text style={styles.audioDate}>{new Date(post.created_at).toLocaleDateString()}</Text>
+                      </View>
+                      <Text style={styles.audioTranscript} numberOfLines={3}>
+                        {transcriptPreview(post)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )
             )}
           </>
         )}
       </ScrollView>
-      <SlideOutMenu visible={menuVisible} onClose={() => setMenuVisible(false)} />
+      {isOwnProfile && <SlideOutMenu visible={menuVisible} onClose={() => setMenuVisible(false)} />}
     </>
   );
 }
@@ -282,22 +388,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 3,
     borderBottomColor: '#4D5A37',
   },
-  tabItem: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.sm,
-  },
   tabItemTextActive: {
     fontFamily: fontFamily.bodyMedium,
     color: '#1F2A16',
-    fontSize: 14,
-  },
-  tabItemText: {
-    fontFamily: fontFamily.bodyMedium,
-    color: '#9FA4B2',
     fontSize: 14,
   },
   emptyGrid: {
@@ -317,7 +410,7 @@ const styles = StyleSheet.create({
   },
   gridTile: {
     width: '33.3333%',
-    aspectRatio: 0.82,
+    aspectRatio: 0.9,
     borderWidth: 0.5,
     borderColor: '#DDE1EA',
     backgroundColor: '#2D3330',
@@ -326,6 +419,30 @@ const styles = StyleSheet.create({
   },
   gridTilePressed: {
     opacity: 0.7,
+  },
+  tileTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  tileBottom: {
+    gap: spacing.xs,
+  },
+  visibilityPill: {
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  publicPill: {
+    backgroundColor: 'rgba(123,193,77,0.3)',
+  },
+  privatePill: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  visibilityText: {
+    color: '#FFFFFF',
+    fontFamily: fontFamily.bodyMedium,
+    fontSize: 10,
   },
   durationPill: {
     alignSelf: 'flex-end',
@@ -338,6 +455,21 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.bodyMedium,
     color: '#FFFFFF',
     fontSize: 10,
+  },
+  publishBtn: {
+    alignSelf: 'flex-start',
+    minWidth: 60,
+    minHeight: 24,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#4D5A37',
+  },
+  publishBtnText: {
+    fontFamily: fontFamily.bodyMedium,
+    color: '#fff',
+    fontSize: 11,
   },
   scorePill: {
     alignSelf: 'flex-start',
@@ -359,5 +491,39 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontFamily: fontFamily.bodyMedium,
     fontSize: 11,
+  },
+  audioList: {
+    marginTop: spacing.md,
+    gap: spacing.sm,
+  },
+  audioCard: {
+    borderWidth: 1,
+    borderColor: '#DDE1EA',
+    borderRadius: radius.md,
+    backgroundColor: '#FFFFFC',
+    padding: spacing.md,
+    gap: spacing.xs,
+  },
+  audioCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  audioLabel: {
+    fontFamily: fontFamily.bodySemiBold,
+    color: '#1F2A16',
+    fontSize: 13,
+  },
+  audioDate: {
+    marginLeft: 'auto',
+    fontFamily: fontFamily.body,
+    color: '#8E95A8',
+    fontSize: 12,
+  },
+  audioTranscript: {
+    fontFamily: fontFamily.body,
+    color: '#3E4634',
+    fontSize: 13,
+    lineHeight: 18,
   },
 });

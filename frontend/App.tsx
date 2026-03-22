@@ -17,7 +17,7 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from './src/context/AuthContext';
-import type { AuthStackParamList, HomeStackParamList } from './src/navigation/types';
+import type { AuthStackParamList, HomeStackParamList, RootTabParamList } from './src/navigation/types';
 import { AnalysisLoadingScreen } from './src/screens/AnalysisLoadingScreen';
 import { AnalysisResultsScreen } from './src/screens/AnalysisResultsScreen';
 import { AnalysisSummaryScreen } from './src/screens/AnalysisSummaryScreen';
@@ -34,7 +34,7 @@ import { RecordVideoScreen } from './src/screens/RecordVideoScreen';
 import { UploadedVideoReviewScreen } from './src/screens/UploadedVideoReviewScreen';
 import { authColors, colors } from './src/theme';
 
-const Tab = createBottomTabNavigator();
+const Tab = createBottomTabNavigator<RootTabParamList>();
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 

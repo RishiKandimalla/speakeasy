@@ -18,6 +18,14 @@ export type AuthStackParamList = {
   SignIn: undefined;
 };
 
+export type RootTabParamList = {
+  Home: undefined;
+  Feed: undefined;
+  Create: undefined;
+  Metrics: undefined;
+  Profile: { userId?: string } | undefined;
+};
+
 export type HomeStackScreenProps<T extends keyof HomeStackParamList> =
   NativeStackScreenProps<HomeStackParamList, T>;
 

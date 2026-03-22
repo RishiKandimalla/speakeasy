@@ -155,6 +155,13 @@ export async function getMyProfile(): Promise<ProfileData> {
   return parseJsonOrThrow(res) as Promise<ProfileData>;
 }
 
+export async function getProfile(userId: string): Promise<ProfileData> {
+  const res = await fetch(`${API_BASE}/v1/profile/${userId}`, {
+    headers: { Accept: 'application/json' },
+  });
+  return parseJsonOrThrow(res) as Promise<ProfileData>;
+}
+
 export type JobSummary = {
   job_id: string;
   status: 'queued' | 'processing' | 'completed' | 'failed';
@@ -162,6 +169,7 @@ export type JobSummary = {
   progress: number;
   created_at: string;
   upload_id: string;
+  is_public: boolean;
   video_url: string | null;
   scores: Record<string, number> | null;
   metrics: Record<string, unknown> | null;
@@ -170,10 +178,38 @@ export type JobSummary = {
   transcript: Record<string, unknown> | null;
 };
 
+export type FeedPostResponse = {
+  post_id: string;
+  username: string;
+  audio_url: string;
+  transcript_json: Record<string, unknown>;
+  created_at: string;
+};
+
+export type PublishPostResponse = {
+  post_id: string;
+  audio_url: string;
+};
+
 export async function listJobs(limit = 20, offset = 0): Promise<JobSummary[]> {
   const headers = await getAuthHeaders();
   const res = await fetch(`${API_BASE}/v1/jobs?limit=${limit}&offset=${offset}`, { headers });
   return parseJsonOrThrow(res) as Promise<JobSummary[]>;
+}
+
+export async function publishPost(jobId: string): Promise<PublishPostResponse> {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/v1/jobs/${jobId}/publish`, {
+    method: 'POST',
+    headers,
+  });
+  return parseJsonOrThrow(res) as Promise<PublishPostResponse>;
+}
+
+export async function listUserPosts(userId: string, limit = 20): Promise<FeedPostResponse[]> {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/v1/profile/${userId}/posts?limit=${limit}`, { headers });
+  return parseJsonOrThrow(res) as Promise<FeedPostResponse[]>;
 }
 
 export async function listClips(category: ClipCategory = 'both'): Promise<ClipResponse[]> {
