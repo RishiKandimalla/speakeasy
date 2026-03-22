@@ -281,6 +281,13 @@ export type ReactionSummary = {
   unique_reactors: number;
 };
 
+/** Aggregated across all posts you own (distinct reactors are global, not summed per post). */
+export type OwnerReactionsSummary = {
+  emoji_counts: Record<string, number>;
+  total_reactions: number;
+  unique_reactors: number;
+};
+
 export async function addReaction(postId: string, emoji: string, timestampS: number): Promise<void> {
   const headers = await getAuthHeaders();
   const res = await fetch(`${API_BASE}/v1/posts/${postId}/reactions`, {
@@ -291,10 +298,36 @@ export async function addReaction(postId: string, emoji: string, timestampS: num
   await parseJsonOrThrow(res);
 }
 
+export type ReactionItem = {
+  reaction_id: string;
+  post_id: string;
+  emoji: string;
+  timestamp_s: number;
+};
+
 export async function getReactionSummary(postId: string): Promise<ReactionSummary> {
   const headers = await getAuthHeaders();
   const res = await fetch(`${API_BASE}/v1/posts/${postId}/reactions/summary`, { headers });
   return parseJsonOrThrow(res) as Promise<ReactionSummary>;
+}
+
+export async function listPostReactions(postId: string): Promise<ReactionItem[]> {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/v1/posts/${postId}/reactions`, { headers });
+  const data = (await parseJsonOrThrow(res)) as { reactions: ReactionItem[] };
+  return data.reactions;
+}
+
+export async function listMyReactions(limit = 500, offset = 0): Promise<ReactionItem[]> {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/v1/reactions/me?limit=${limit}&offset=${offset}`, { headers });
+  return parseJsonOrThrow(res) as Promise<ReactionItem[]>;
+}
+
+export async function getMyReactionsSummary(): Promise<OwnerReactionsSummary> {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/v1/reactions/me/summary`, { headers });
+  return parseJsonOrThrow(res) as Promise<OwnerReactionsSummary>;
 }
 
 // ── Notifications ──────────────────────────────────────────────────────────────

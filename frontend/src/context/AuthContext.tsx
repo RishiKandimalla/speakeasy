@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { getMyStats } from '../lib/api';
+import { resetDailyTracker, scheduleStreakReminder } from '../lib/notifications';
 
 type AuthState = {
   session: Session | null;
@@ -21,10 +23,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       setLoading(false);
+      if (s) {
+        getMyStats()
+          .then((stats) => scheduleStreakReminder(stats.streak_days))
+          .catch(() => {});
+      }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
+      if (event === 'SIGNED_IN' && s) {
+        resetDailyTracker().then(() =>
+          getMyStats()
+            .then((stats) => scheduleStreakReminder(stats.streak_days))
+            .catch(() => {}),
+        );
+      }
     });
 
     return () => subscription.unsubscribe();

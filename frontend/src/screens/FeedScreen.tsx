@@ -12,8 +12,9 @@ import {
   ViewToken,
   useWindowDimensions,
 } from 'react-native';
-import { useFocusEffect, useIsFocused } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { setStatusBarStyle } from 'expo-status-bar';
 import { useVideoPlayer, VideoView } from 'expo-video';
 
 import { getCachedClipUri, prefetchClip } from '../lib/clipCache';
@@ -22,12 +23,12 @@ import {
   ClipResponse,
   EMOJI_DISPLAY,
   FeedPostResponse,
-  getMyProfile,
+  getReactionSummary,
   listClips,
-  listFollowingFeed,
   listPublicFeed,
   REACTION_EMOJIS,
   type ReactionEmoji,
+  type ReactionSummary,
 } from '../lib/api';
 import { colors, fontFamily, radius, spacing, typography } from '../theme';
 import type { Word } from '../types/analysis';
@@ -316,15 +317,21 @@ function ReactionButton({
 function ReactionBar({
   postId,
   currentTime,
+  onReacted,
 }: {
   postId: string;
   currentTime: number;
+  onReacted?: () => void;
 }) {
   const handleReaction = useCallback(
     (emoji: ReactionEmoji) => {
-      void addReaction(postId, emoji, currentTime).catch(() => {});
+      void addReaction(postId, emoji, currentTime)
+        .then(() => {
+          onReacted?.();
+        })
+        .catch(() => {});
     },
-    [postId, currentTime],
+    [postId, currentTime, onReacted],
   );
 
   return (
@@ -387,6 +394,71 @@ function FeedBackgroundVideo({
 // FeedVideoItem
 // ---------------------------------------------------------------------------
 
+function ReactionSummaryBar({
+  postId,
+  shouldPlay,
+  refreshKey,
+}: {
+  postId: string;
+  shouldPlay: boolean;
+  refreshKey: number;
+}) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const navigation = useNavigation<any>();
+  const [summary, setSummary] = useState<ReactionSummary | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!shouldPlay) return;
+    let cancelled = false;
+    setLoading(true);
+    void getReactionSummary(postId)
+      .then((s) => {
+        if (!cancelled) setSummary(s);
+      })
+      .catch(() => {
+        if (!cancelled) setSummary(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [postId, shouldPlay, refreshKey]);
+
+  if (!shouldPlay) return null;
+
+  const topEmojis = summary
+    ? Object.entries(summary.emoji_counts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([key]) => EMOJI_DISPLAY[key as ReactionEmoji] ?? key)
+        .join('')
+    : '';
+
+  const countLabel = loading
+    ? '…'
+    : summary
+      ? `${summary.total_reactions} reaction${summary.total_reactions !== 1 ? 's' : ''}`
+      : 'View reactions';
+
+  return (
+    <Pressable
+      style={styles.summaryBar}
+      onPress={() =>
+        navigation.navigate('Home', {
+          screen: 'PostReactions',
+          params: { postId },
+        })
+      }
+    >
+      {topEmojis ? <Text style={styles.summaryEmojis}>{topEmojis}</Text> : null}
+      <Text style={styles.summaryCount}>{countLabel}</Text>
+    </Pressable>
+  );
+}
+
 function FeedVideoItem({
   item,
   shouldPlay,
@@ -427,6 +499,11 @@ function FeedVideoItem({
 
   const initial = item.username ? item.username.charAt(0).toUpperCase() : '?';
 
+  const [summaryRefresh, setSummaryRefresh] = useState(0);
+  const bumpSummary = useCallback(() => {
+    setSummaryRefresh((n) => n + 1);
+  }, []);
+
   return (
     <View style={[styles.page, { height }]}>
       {item.backgroundClip ? (
@@ -445,7 +522,14 @@ function FeedVideoItem({
       </View>
 
       {/* Reaction bar – right side */}
-      <ReactionBar postId={item.post_id} currentTime={currentTime} />
+      <ReactionBar postId={item.post_id} currentTime={currentTime} onReacted={bumpSummary} />
+
+      {/* Tappable reaction summary */}
+      <ReactionSummaryBar
+        postId={item.post_id}
+        shouldPlay={shouldPlay}
+        refreshKey={summaryRefresh}
+      />
 
       {/* Live captions */}
       <CaptionOverlay transcript={transcript} currentTime={currentTime} />
@@ -457,8 +541,6 @@ function FeedVideoItem({
 // FeedScreen
 // ---------------------------------------------------------------------------
 
-type FeedTab = 'For You' | 'Following';
-
 export function FeedScreen() {
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
@@ -469,14 +551,12 @@ export function FeedScreen() {
 
   const isFocused = useIsFocused();
 
-  const [activeTab, setActiveTab] = useState<FeedTab>('For You');
   const [sourcePosts, setSourcePosts] = useState<FeedPostResponse[]>([]);
   const [sourceClips, setSourceClips] = useState<ClipResponse[]>([]);
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [visibleIndex, setVisibleIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [myUserId, setMyUserId] = useState<string | null>(null);
 
   const instanceCounterRef = useRef(0);
   const loadingMoreRef = useRef(false);
@@ -498,17 +578,12 @@ export function FeedScreen() {
     [],
   );
 
-  const loadInitial = useCallback(async (tab: FeedTab) => {
+  const loadInitial = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [posts, clips, me] = await Promise.all([
-        tab === 'Following' ? listFollowingFeed(BATCH_SIZE) : listPublicFeed(BATCH_SIZE),
-        listClips('both'),
-        getMyProfile(),
-      ]);
-      setMyUserId(me.user_id);
-      setSourcePosts(posts.filter((p) => p.user_id !== me.user_id));
+      const [posts, clips] = await Promise.all([listPublicFeed(BATCH_SIZE), listClips('both')]);
+      setSourcePosts(posts);
       setSourceClips(clips);
       instanceCounterRef.current = 0;
       if (!posts.length) {
@@ -517,9 +592,7 @@ export function FeedScreen() {
         return;
       }
       const firstBatch = createBatch(posts, clips);
-      const secondBatch = tab === 'Following'
-        ? []
-        : createBatch(posts, clips, firstBatch[firstBatch.length - 1]?.post_id);
+      const secondBatch = createBatch(posts, clips, firstBatch[firstBatch.length - 1]?.post_id);
       setFeed([...firstBatch, ...secondBatch]);
       setVisibleIndex(0);
     } catch (e) {
@@ -535,15 +608,16 @@ export function FeedScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      void loadInitial(activeTab);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+      void loadInitial();
     }, [loadInitial]),
   );
 
-  useEffect(() => {
-    void loadInitial(activeTab);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  useFocusEffect(
+    useCallback(() => {
+      setStatusBarStyle('light');
+      return () => setStatusBarStyle('dark');
+    }, []),
+  );
 
   useEffect(() => {
     if (!feed.length) return;
@@ -575,31 +649,13 @@ export function FeedScreen() {
 
   const renderItem = useCallback(
     ({ item, index }: ListRenderItemInfo<FeedItem>) => (
-      <FeedVideoItem
-        item={item}
-        shouldPlay={isFocused && index === visibleIndex}
-        height={pageHeight}
-      />
+      <FeedVideoItem item={item} shouldPlay={isFocused && index === visibleIndex} height={pageHeight} />
     ),
     [isFocused, pageHeight, visibleIndex],
   );
 
   return (
     <View style={styles.root}>
-      {/* Tab bar */}
-      <View style={[styles.tabBar, { top: insets.top + 8 }]}>
-        {(['For You', 'Following'] as FeedTab[]).map((tab) => (
-          <Pressable
-            key={tab}
-            onPress={() => setActiveTab(tab)}
-            style={styles.tabItem}
-          >
-            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
-            {activeTab === tab && <View style={styles.tabUnderline} />}
-          </Pressable>
-        ))}
-      </View>
-
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -612,16 +668,13 @@ export function FeedScreen() {
         </View>
       ) : !feed.length ? (
         <View style={styles.center}>
-          <Text style={styles.centerText}>
-            {activeTab === 'Following' ? 'Follow some people to see their posts here.' : 'No public posts are available yet.'}
-          </Text>
+          <Text style={styles.centerText}>No public posts are available yet.</Text>
         </View>
       ) : (
         <FlatList
           data={feed}
           keyExtractor={(item) => item.instanceKey}
           renderItem={renderItem}
-
           pagingEnabled
           snapToInterval={pageHeight}
           snapToAlignment="start"
@@ -660,40 +713,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
   },
 
-  // Tab bar
-  tabBar: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    zIndex: 10,
-    gap: spacing.xxl,
-  },
-  tabItem: {
-    alignItems: 'center',
-    paddingBottom: 4,
-  },
-  tabText: {
-    fontSize: 16,
-    fontFamily: fontFamily.bodySemiBold,
-    color: 'rgba(255,255,255,0.5)',
-  },
-  tabTextActive: {
-    color: '#fff',
-  },
-  tabUnderline: {
-    marginTop: 3,
-    height: 2,
-    width: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 1,
-  },
-
   // User header (top-left)
   userHeader: {
     position: 'absolute',
-    top: 110,
+    top: 66,
     left: spacing.xl,
     flexDirection: 'row',
     alignItems: 'center',
@@ -789,6 +812,29 @@ const styles = StyleSheet.create({
   },
   reactionEmoji: {
     fontSize: 24,
+  },
+
+  // Reaction summary bar (bottom-left, above captions)
+  summaryBar: {
+    position: 'absolute',
+    left: spacing.xl,
+    bottom: 120,
+    zIndex: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  summaryEmojis: {
+    fontSize: 18,
+  },
+  summaryCount: {
+    fontFamily: fontFamily.body,
+    fontSize: 13,
+    color: '#fff',
   },
 
   // Loading / error / empty states

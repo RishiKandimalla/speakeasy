@@ -53,6 +53,13 @@
         }
       ],
       "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "sounds": [],
+          "color": "#30410D"
+        }
+      ],
       "expo-font"
     ]
   }

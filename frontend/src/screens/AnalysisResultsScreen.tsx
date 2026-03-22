@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { HomeStackScreenProps } from '../navigation/types';
 import type { AnalysisResult, Sentence } from '../types/analysis';
-import { colors, radius, spacing, typography } from '../theme';
+import { authColors, fontFamily, radius, spacing } from '../theme';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -53,18 +53,18 @@ const feed = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: authColors.border,
   },
   rowActive: {
-    backgroundColor: 'rgba(69,227,164,0.07)',
+    backgroundColor: 'rgba(102,112,82,0.08)',
     borderLeftWidth: 3,
-    borderLeftColor: colors.primary,
+    borderLeftColor: authColors.cta,
     paddingLeft: spacing.lg - 3,
   },
-  ts: { ...typography.caption, color: colors.textMuted, width: 36, paddingTop: 2 },
-  tsActive: { color: colors.primary },
-  text: { ...typography.body, color: colors.textSecondary, flex: 1, fontSize: 15 },
-  textActive: { color: colors.text },
+  ts: { fontFamily: fontFamily.body, fontSize: 13, fontWeight: '500' as const, letterSpacing: 0.3, color: authColors.textMuted, width: 36, paddingTop: 2 },
+  tsActive: { color: authColors.cta },
+  text: { fontFamily: fontFamily.body, fontSize: 15, lineHeight: 23, color: '#6B7264', flex: 1 },
+  textActive: { color: authColors.text },
 });
 
 function SectionHeader({ title, sub }: { title: string; sub?: string }) {
@@ -85,11 +85,14 @@ const sh = StyleSheet.create({
     paddingTop: spacing.xl,
     paddingBottom: spacing.sm,
   },
-  title: { ...typography.headline, color: colors.text, fontSize: 17 },
+  title: { fontFamily: fontFamily.bodySemiBold, fontSize: 17, color: '#1F2A16' },
   sub: {
-    ...typography.caption,
-    color: colors.primary,
-    backgroundColor: 'rgba(69,227,164,0.12)',
+    fontFamily: fontFamily.body,
+    fontSize: 13,
+    fontWeight: '500' as const,
+    letterSpacing: 0.3,
+    color: authColors.cta,
+    backgroundColor: 'rgba(102,112,82,0.1)',
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
     borderRadius: radius.full,
@@ -101,22 +104,20 @@ const sh = StyleSheet.create({
 function LiveBar({
   sentence,
   index,
-  sentenceTone,
 }: {
   sentence: Sentence | null;
   index: number;
-  sentenceTone: import('../types/analysis').SentenceTone;
 }) {
   const wpm = sentence?.wpm ?? 0;
-  const conf = sentenceTone?.confidence ?? sentence?.tone?.confidence ?? null;
-  const energy = sentenceTone?.energy ?? sentence?.tone?.energy ?? null;
+  const conf = sentence?.tone?.confidence ?? null;
+  const energy = sentence?.tone?.energy ?? null;
 
   const wpmPct = clamp((wpm / 200) * 100, 0, 100);
   const confPct = conf != null ? clamp(conf * 100, 0, 100) : null;
   const energyPct = energy != null ? clamp(energy * 100, 0, 100) : null;
 
   const wpmColor =
-    wpm < 100 || wpm > 180 ? colors.warning : colors.primary;
+    wpm < 100 || wpm > 180 ? '#C8842E' : authColors.cta;
 
   return (
     <View style={lb.wrap}>
@@ -127,13 +128,24 @@ function LiveBar({
         </View>
         <Text style={[lb.barVal, { color: wpmColor }]}>{wpm > 0 ? `${Math.round(wpm)} wpm` : '—'}</Text>
       </View>
-      <View style={lb.bar}>
-        <Text style={lb.barLabel}>Confidence</Text>
-        <View style={lb.track}>
-          <View style={[lb.fill, { width: `${confPct ?? 0}%` as any, backgroundColor: colors.info }]} />
+      {confPct != null && (
+        <View style={lb.bar}>
+          <Text style={lb.barLabel}>Confidence</Text>
+          <View style={lb.track}>
+            <View style={[lb.fill, { width: `${confPct}%` as any, backgroundColor: '#5a6b40' }]} />
+          </View>
+          <Text style={[lb.barVal, { color: '#5a6b40' }]}>{Math.round(confPct)}%</Text>
         </View>
-        <Text style={[lb.barVal, { color: colors.info }]}>{confPct != null ? `${Math.round(confPct)}%` : '—'}</Text>
-      </View>
+      )}
+      {energyPct != null && (
+        <View style={lb.bar}>
+          <Text style={lb.barLabel}>Energy</Text>
+          <View style={lb.track}>
+            <View style={[lb.fill, { width: `${energyPct}%` as any, backgroundColor: '#86cc1b' }]} />
+          </View>
+          <Text style={[lb.barVal, { color: '#86cc1b' }]}>{Math.round(energyPct)}%</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -143,21 +155,21 @@ const lb = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     gap: spacing.sm,
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFFFFC',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: authColors.border,
   },
   bar: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  barLabel: { ...typography.caption, color: colors.textMuted, width: 72 },
+  barLabel: { fontFamily: fontFamily.body, fontSize: 13, fontWeight: '500' as const, letterSpacing: 0.3, color: authColors.textMuted, width: 72 },
   track: {
     flex: 1,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.card,
+    backgroundColor: 'rgba(38,49,3,0.1)',
     overflow: 'hidden',
   },
   fill: { height: '100%', borderRadius: 2 },
-  barVal: { ...typography.caption, width: 54, textAlign: 'right' },
+  barVal: { fontFamily: fontFamily.body, fontSize: 13, fontWeight: '500' as const, letterSpacing: 0.3, width: 54, textAlign: 'right' },
 });
 
 // ── main screen ───────────────────────────────────────────────────────────────
@@ -174,20 +186,12 @@ export function AnalysisResultsScreen({
 
   const player = useVideoPlayer(videoUri ?? '', (p) => {
     p.loop = false;
-    p.allowsExternalPlayback = false;
   });
 
   const [currentTime, setCurrentTime] = useState(0);
   const [isLockedUntilEnd, setIsLockedUntilEnd] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const itemYMap = useRef<Record<number, number>>({});
-
-  // Auto-play video when it's ready
-  useEffect(() => {
-    if (videoUri && player) {
-      player.play();
-    }
-  }, [player, videoUri]);
 
   // Poll video position every 300ms
   useEffect(() => {
@@ -224,15 +228,16 @@ export function AnalysisResultsScreen({
     }
   }, [activeSentenceIdx]);
 
-  // Check if video has been watched to the end
-  const hasWatchedToEnd = isLockedUntilEnd
-    ? (player.currentTime ?? currentTime ?? 0) + 0.5 >= (player.duration ?? result.metrics?.duration ?? 0)
-    : true;
-
   const goToSummary = useCallback(() => {
-    if (!hasWatchedToEnd) return;
+    // only allow navigation if not locked or if we've reached end
+    if (isLockedUntilEnd) {
+      const duration = player.duration ?? result.metrics?.duration ?? 0;
+      const current = player.currentTime ?? currentTime ?? 0;
+      // allow small epsilon for timing
+      if (duration > 0 && current + 0.5 < duration) return;
+    }
     navigation.navigate('AnalysisSummary', { result });
-  }, [navigation, result, hasWatchedToEnd]);
+  }, [navigation, result, isLockedUntilEnd, player, currentTime]);
 
   return (
     <View style={styles.root}>
@@ -240,12 +245,12 @@ export function AnalysisResultsScreen({
       {videoUri ? (
         <View style={styles.videoOuter}>
           <View style={styles.videoWrap}>
-            <VideoView player={player} style={styles.video} nativeControls={false} />
+            <VideoView player={player} style={styles.video} nativeControls />
           </View>
         </View>
       ) : (
         <View style={styles.noVideo}>
-          <Ionicons name="videocam-off-outline" size={28} color={colors.textMuted} />
+          <Ionicons name="videocam-off-outline" size={28} color={authColors.textMuted} />
           <Text style={styles.noVideoText}>No video available</Text>
         </View>
       )}
@@ -259,11 +264,7 @@ export function AnalysisResultsScreen({
         {/* Live analytics header */}
         <SectionHeader title="Live analytics" />
 
-        <LiveBar
-          sentence={activeSentence}
-          index={activeSentenceIdx}
-          sentenceTone={activeSentenceIdx >= 0 ? (result.tone?.sentences_tone[activeSentenceIdx] ?? null) : null}
-        />
+        <LiveBar sentence={activeSentence} index={activeSentenceIdx} />
 
         {/* Live feedback feed */}
         <SectionHeader title="Live feedback from AI" sub="Synced to video" />
@@ -288,14 +289,12 @@ export function AnalysisResultsScreen({
         </View>
 
         <Pressable
-          style={[styles.skipBtn, hasWatchedToEnd ? styles.skipBtnEnabled : styles.skipBtnDisabled]}
+          style={[styles.skipBtn, isLockedUntilEnd && styles.skipBtnLocked]}
           onPress={goToSummary}
-          disabled={!hasWatchedToEnd}
+          disabled={isLockedUntilEnd && ((player.currentTime ?? currentTime) + 0.5 < (player.duration ?? (result.metrics?.duration ?? 0)))}
         >
-          <Text style={[styles.skipText, hasWatchedToEnd ? styles.skipTextEnabled : styles.skipTextDisabled]}>
-            {!hasWatchedToEnd ? 'Watch full video to view results' : 'View results'}
-          </Text>
-          {hasWatchedToEnd && <Ionicons name="chevron-forward" size={14} color={colors.background} />}
+          <Text style={styles.skipText}>{isLockedUntilEnd ? 'Watch full video to view results' : 'View results'}</Text>
+          <Ionicons name="chevron-forward" size={14} color={authColors.textMuted} />
         </Pressable>
       </ScrollView>
     </View>
@@ -303,17 +302,17 @@ export function AnalysisResultsScreen({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background },
+  root: { flex: 1, backgroundColor: authColors.background },
   videoOuter: {
     width: '100%',
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFFFFC',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: authColors.border,
     paddingVertical: spacing.sm,
   },
   videoWrap: {
-    height: 360,
+    height: 260,
     aspectRatio: 9 / 16,
     borderRadius: radius.md,
     overflow: 'hidden',
@@ -325,38 +324,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFFFFC',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: authColors.border,
   },
-  noVideoText: { ...typography.caption, color: colors.textMuted },
+  noVideoText: { fontFamily: fontFamily.body, fontSize: 13, fontWeight: '500' as const, letterSpacing: 0.3, color: authColors.textMuted },
   scroll: { flex: 1 },
   feedWrap: {
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: authColors.border,
   },
   skipBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs,
     paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.lg,
-    marginHorizontal: spacing.lg,
-    marginVertical: spacing.lg,
-    borderRadius: radius.md,
-    backgroundColor: colors.card,
-    borderTopWidth: 0,
-    borderTopColor: 'transparent',
+    borderTopWidth: 1,
+    borderTopColor: authColors.border,
   },
-  skipBtnDisabled: { 
-    opacity: 0.5,
-    backgroundColor: colors.card,
-  },
-  skipBtnEnabled: {
-    backgroundColor: colors.primary,
-  },
-  skipText: { ...typography.caption, color: colors.textMuted, fontWeight: '500' },
-  skipTextDisabled: { color: colors.textMuted },
-  skipTextEnabled: { color: colors.background, fontWeight: '600' },
+  skipBtnLocked: { opacity: 0.45 },
+  skipText: { fontFamily: fontFamily.body, fontSize: 13, fontWeight: '500' as const, letterSpacing: 0.3, color: authColors.textMuted },
 });

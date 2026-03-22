@@ -14,7 +14,7 @@ import { VideoPreview } from '../components/VideoPreview';
 import type { HomeStackScreenProps } from '../navigation/types';
 import { uploadVideo, createJob } from '../lib/api';
 import { persistVideoFromUri } from '../lib/savedVideos';
-import { colors, radius, spacing, typography } from '../theme';
+import { authColors, fontFamily, radius, spacing } from '../theme';
 
 export function UploadedVideoReviewScreen({
   navigation,
@@ -108,7 +108,7 @@ export function UploadedVideoReviewScreen({
         >
           {submitting ? (
             <View style={styles.btnRow}>
-              <ActivityIndicator color={colors.background} size="small" />
+              <ActivityIndicator color={authColors.background} size="small" />
               <Text style={[styles.btnText, styles.btnRowText]}>{uploadLabel}</Text>
             </View>
           ) : (
@@ -129,7 +129,7 @@ export function UploadedVideoReviewScreen({
 const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: authColors.background,
   },
   scroll: {
     flexGrow: 1,
@@ -141,17 +141,19 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
   },
   pageTitle: {
-    ...typography.headline,
-    color: colors.text,
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: 20,
+    color: '#1F2A16',
     marginBottom: spacing.xs,
   },
   pageSub: {
-    ...typography.caption,
-    color: colors.textSecondary,
+    fontFamily: fontFamily.body,
+    fontSize: 13,
+    color: authColors.textMuted,
     marginBottom: spacing.lg,
   },
   btn: {
-    backgroundColor: colors.primary,
+    backgroundColor: authColors.cta,
     paddingVertical: spacing.lg,
     borderRadius: radius.lg,
     alignItems: 'center',
@@ -161,13 +163,13 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   btnText: {
-    ...typography.body,
-    fontWeight: '600',
-    color: colors.background,
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: 16,
+    color: authColors.ctaText,
   },
   btnSecondary: {
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: authColors.border,
     paddingVertical: spacing.lg,
     borderRadius: radius.lg,
     alignItems: 'center',
@@ -177,9 +179,9 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   btnSecondaryText: {
-    ...typography.body,
-    color: colors.primary,
-    fontWeight: '600',
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: 16,
+    color: authColors.cta,
   },
   btnDisabled: {
     opacity: 0.5,

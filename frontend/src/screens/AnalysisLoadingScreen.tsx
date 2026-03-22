@@ -3,7 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { getJobStatus, getJobResult } from '../lib/api';
 import type { HomeStackScreenProps } from '../navigation/types';
-import { colors, spacing, typography } from '../theme';
+import { authColors, fontFamily, spacing } from '../theme';
 
 const POLL_INTERVAL_MS = 3000;
 
@@ -66,11 +66,14 @@ export function AnalysisLoadingScreen({
         {error ? (
           <Text style={styles.errorIcon}>✕</Text>
         ) : (
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={authColors.cta} />
         )}
       </View>
+      <Text style={styles.title} numberOfLines={1}>
+        {error ? 'Analysis failed' : 'Analyzing your session'}
+      </Text>
       <Text style={styles.sub} numberOfLines={2}>
-        {error ? 'Analysis failed' : error ?? stageLabel}
+        {error ?? stageLabel}
       </Text>
       {!error && (
         <>
@@ -87,7 +90,7 @@ export function AnalysisLoadingScreen({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: authColors.background,
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.xxl,
@@ -96,40 +99,47 @@ const styles = StyleSheet.create({
     width: 84,
     height: 84,
     borderRadius: 42,
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFFFFC',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: authColors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   errorIcon: {
     fontSize: 32,
-    color: colors.danger,
+    color: '#C0392B',
+  },
+  title: {
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: 20,
+    color: authColors.text,
+    marginTop: spacing.lg,
   },
   sub: {
-    ...typography.body,
-    color: colors.text,
-    marginTop: spacing.lg,
+    fontFamily: fontFamily.body,
+    fontSize: 13,
+    color: authColors.textMuted,
+    marginTop: spacing.sm,
     textAlign: 'center',
-    fontSize: 16,
   },
   progressBar: {
     width: '100%',
     maxWidth: 280,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.surface,
+    backgroundColor: authColors.border,
     marginTop: spacing.xl,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: colors.primary,
+    backgroundColor: authColors.cta,
     borderRadius: 2,
   },
   progressLabel: {
-    ...typography.caption,
-    color: colors.textSecondary,
+    fontFamily: fontFamily.body,
+    fontSize: 13,
+    color: authColors.textMuted,
     marginTop: spacing.sm,
   },
 });

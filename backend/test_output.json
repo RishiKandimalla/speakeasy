@@ -1,0 +1,298 @@
+{
+  "job_id": "c027caa3-c1a2-4b96-9c00-5a50b5cf6e80",
+  "transcript_text": "There's plenty of fish in the sea. My favorite fish is, um. Uh, like, maybe Nathan. Um, he's a great fish, I think. Maybe. Yeah.",
+  "transcript_json": {
+    "text": "There's plenty of fish in the sea. My favorite fish is, um. Uh, like, maybe Nathan. Um, he's a great fish, I think. Maybe. Yeah.",
+    "words": [
+      {
+        "end": 1.04,
+        "word": "There's",
+        "start": 0.64
+      },
+      {
+        "end": 1.44,
+        "word": "plenty",
+        "start": 1.04
+      },
+      {
+        "end": 1.72,
+        "word": "of",
+        "start": 1.44
+      },
+      {
+        "end": 2.16,
+        "word": "fish",
+        "start": 1.72
+      },
+      {
+        "end": 2.52,
+        "word": "in",
+        "start": 2.24
+      },
+      {
+        "end": 2.68,
+        "word": "the",
+        "start": 2.52
+      },
+      {
+        "end": 3.12,
+        "word": "sea.",
+        "start": 2.68
+      },
+      {
+        "end": 5.44,
+        "word": "My",
+        "start": 5.04
+      },
+      {
+        "end": 6.4,
+        "word": "favorite",
+        "start": 5.76
+      },
+      {
+        "end": 7.04,
+        "word": "fish",
+        "start": 6.56
+      },
+      {
+        "end": 7.92,
+        "word": "is,",
+        "start": 7.52
+      },
+      {
+        "end": 9.88,
+        "word": "um.",
+        "start": 8.76
+      },
+      {
+        "end": 11.32,
+        "word": "Uh,",
+        "start": 9.96
+      },
+      {
+        "end": 11.68,
+        "word": "like,",
+        "start": 11.32
+      },
+      {
+        "end": 12.56,
+        "word": "maybe",
+        "start": 12.0
+      },
+      {
+        "end": 13.84,
+        "word": "Nathan.",
+        "start": 13.12
+      },
+      {
+        "end": 15.74,
+        "word": "Um,",
+        "start": 14.7
+      },
+      {
+        "end": 15.999,
+        "word": "he's",
+        "start": 15.74
+      },
+      {
+        "end": 16.199,
+        "word": "a",
+        "start": 15.999
+      },
+      {
+        "end": 16.48,
+        "word": "great",
+        "start": 16.199
+      },
+      {
+        "end": 17.28,
+        "word": "fish,",
+        "start": 16.8
+      },
+      {
+        "end": 17.72,
+        "word": "I",
+        "start": 17.44
+      },
+      {
+        "end": 18.0,
+        "word": "think.",
+        "start": 17.72
+      },
+      {
+        "end": 18.56,
+        "word": "Maybe.",
+        "start": 18.08
+      },
+      {
+        "end": 20.88,
+        "word": "Yeah.",
+        "start": 20.4
+      }
+    ]
+  },
+  "scores": {
+    "pace": 31,
+    "fluency": 70,
+    "grammar": 80,
+    "consistency": 63
+  },
+  "metrics": {
+    "wpm": 74.1,
+    "pauses": [
+      1.92,
+      0.84,
+      0.56,
+      0.86,
+      1.84
+    ],
+    "duration": 20.24,
+    "avg_pause": 1.2,
+    "sentences": [
+      {
+        "end": 3.12,
+        "wpm": 169.4,
+        "text": "There's plenty of fish in the sea.",
+        "start": 0.64,
+        "end_index": 6,
+        "word_count": 7,
+        "start_index": 0,
+        "filler_count": 0,
+        "grammar_issues": [
+          {
+            "issue": "Subject-verb agreement",
+            "suggestion": "There are plenty of fish in the sea."
+          }
+        ],
+        "vocabulary_richness": 0.278
+      },
+      {
+        "end": 9.88,
+        "wpm": 62.0,
+        "text": "My favorite fish is, um.",
+        "start": 5.04,
+        "end_index": 11,
+        "word_count": 5,
+        "start_index": 7,
+        "filler_count": 1,
+        "grammar_issues": [],
+        "vocabulary_richness": 0.333
+      },
+      {
+        "end": 13.84,
+        "wpm": 61.9,
+        "text": "Uh, like, maybe Nathan.",
+        "start": 9.96,
+        "end_index": 15,
+        "word_count": 4,
+        "start_index": 12,
+        "filler_count": 2,
+        "grammar_issues": [],
+        "vocabulary_richness": 0.277
+      },
+      {
+        "end": 18.0,
+        "wpm": 127.3,
+        "text": "Um, he's a great fish, I think.",
+        "start": 14.7,
+        "end_index": 22,
+        "word_count": 7,
+        "start_index": 16,
+        "filler_count": 1,
+        "grammar_issues": [],
+        "vocabulary_richness": 0.268
+      },
+      {
+        "end": 18.56,
+        "wpm": 125.0,
+        "text": "Maybe.",
+        "start": 18.08,
+        "end_index": 23,
+        "word_count": 1,
+        "start_index": 23,
+        "filler_count": 0,
+        "grammar_issues": [],
+        "vocabulary_richness": 0.221
+      },
+      {
+        "end": 20.88,
+        "wpm": 125.0,
+        "text": "Yeah.",
+        "start": 20.4,
+        "end_index": 24,
+        "word_count": 1,
+        "start_index": 24,
+        "filler_count": 0,
+        "grammar_issues": [],
+        "vocabulary_richness": 0.233
+      }
+    ],
+    "word_count": 25,
+    "filler_rate": 11.86,
+    "pause_count": 5,
+    "acceleration": {
+      "delta": -21.1,
+      "trend": "decelerating",
+      "first_half_wpm": 115.7,
+      "second_half_wpm": 94.6
+    },
+    "filler_count": 4,
+    "filler_words": {
+      "uh": 1,
+      "um": 2,
+      "like": 1
+    },
+    "grammar_score": 80,
+    "longest_pause": 1.92,
+    "avg_word_length": 4.62,
+    "filler_positions": [
+      {
+        "end": 9.88,
+        "word": "um.",
+        "index": 11,
+        "start": 8.76
+      },
+      {
+        "end": 11.32,
+        "word": "Uh,",
+        "index": 12,
+        "start": 9.96
+      },
+      {
+        "end": 11.68,
+        "word": "like,",
+        "index": 13,
+        "start": 11.32
+      },
+      {
+        "end": 15.74,
+        "word": "Um,",
+        "index": 16,
+        "start": 14.7
+      }
+    ],
+    "repeated_phrases": [],
+    "vocabulary_richness": 0.27
+  },
+  "feedback": {
+    "tips": [
+      "**Outline Before Speaking:** Practice structuring your thoughts with a brief outline or bullet points before speaking to ensure a clear, logical flow and reduce reliance on filler words.",
+      "**Timed Practice Drills:** Read short texts or prepare short speeches, timing yourself and aiming to gradually increase your speaking rate while maintaining clarity and reducing pauses.",
+      "**Descriptive Language Exercise:** Choose a simple object or concept and practice describing it aloud using diverse vocabulary and avoiding repetition, focusing on precise and engaging word choices."
+    ],
+    "summary": "The speech delivery was notably slow and marked by significant hesitation, frequent filler words, and long pauses, which impacted overall fluency. The content lacked a clear direction, with an abrupt topic shift and an unclear metaphor, leading to confusion for the listener.",
+    "strengths": [
+      "The opening phrase was a common and well-understood idiom.",
+      "Individual words, when spoken, were generally audible.",
+      "The speaker attempted to express a personal preference."
+    ],
+    "improvements": [
+      "**Fluency and Pacing:** The very low WPM, coupled with frequent filler words ('um', 'uh', 'like') and long pauses, indicates significant hesitation and a lack of smooth, confident delivery.",
+      "**Content Clarity and Cohesion:** The sudden shift from a general idiom to a personal preference using an unclear metaphor ('favorite fish is Nathan') created confusion and lacked a clear narrative purpose.",
+      "**Vocabulary and Word Choice:** The extremely low vocabulary richness suggests an opportunity to use more varied, precise, and descriptive language to enhance engagement and meaning."
+    ]
+  },
+  "presage": null,
+  "debug": null,
+  "created_at": "2026-03-22T06:56:06.892301+00:00"
+}

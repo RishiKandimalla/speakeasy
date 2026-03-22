@@ -260,6 +260,7 @@ export function RecordVideoScreen() {
               style={StyleSheet.absoluteFill}
               facing="front"
               mode="video"
+              videoQuality="480p"
               mute={false}
               onCameraReady={() => setCameraReady(true)}
             />

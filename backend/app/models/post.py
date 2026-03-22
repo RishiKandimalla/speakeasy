@@ -38,3 +38,11 @@ class ReactionSummaryResponse(BaseModel):
     emoji_counts: dict[str, int]
     total_reactions: int
     unique_reactors: int
+
+
+class OwnerReactionsSummaryResponse(BaseModel):
+    """Aggregated reaction stats across all posts owned by the user."""
+
+    emoji_counts: dict[str, int]
+    total_reactions: int
+    unique_reactors: int
