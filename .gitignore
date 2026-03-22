@@ -50,4 +50,4 @@ yarn-error.*
 /frontend/android
 .claude
 
-# /video_clips/
+/video_clips/
