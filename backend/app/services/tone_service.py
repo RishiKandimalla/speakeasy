@@ -83,11 +83,13 @@ def analyze_tone(audio_path: str, sentences: list[dict]) -> dict:
     log.info(f"Hume tone job complete: {job_id_str} status={status}")
 
     predictions = list(batch.get_job_predictions(id=job_id_str))
-    raw_segments = (
-        predictions[0].results.predictions[0]
-        .models.prosody.grouped_predictions[0].predictions
-        if predictions else []
-    )
+    try:
+        file_result = predictions[0].results.predictions[0]
+        grouped = file_result.models.prosody.grouped_predictions
+        raw_segments = grouped[0].predictions if grouped else []
+    except (IndexError, AttributeError, TypeError):
+        log.warning("Hume returned no prosody segments — defaulting to empty tone")
+        raw_segments = []
 
     parsed = [
         {

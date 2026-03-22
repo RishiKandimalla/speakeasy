@@ -23,8 +23,8 @@ def get_job(job_id: str, user_id: str | None = None) -> dict | None:
     query = db.table("jobs").select("*").eq("id", job_id)
     if user_id:
         query = query.eq("user_id", user_id)
-    result = query.maybe_single().execute()
-    return result.data
+    result = query.execute()
+    return result.data[0] if result.data else None
 
 
 def claim_job(job_id: str, worker_name: str) -> bool:
@@ -112,14 +112,14 @@ def upsert_job_analysis(job_id: str, analysis: dict) -> None:
 
 def get_job_outputs(job_id: str) -> dict | None:
     db = get_client()
-    result = db.table("job_outputs").select("*").eq("job_id", job_id).maybe_single().execute()
-    return result.data if result else None
+    result = db.table("job_outputs").select("*").eq("job_id", job_id).execute()
+    return result.data[0] if result.data else None
 
 
 def get_job_analysis(job_id: str) -> dict | None:
     db = get_client()
-    result = db.table("job_analysis").select("*").eq("job_id", job_id).maybe_single().execute()
-    return result.data if result else None
+    result = db.table("job_analysis").select("*").eq("job_id", job_id).execute()
+    return result.data[0] if result.data else None
 
 
 def get_upload(upload_id: str, user_id: str | None = None) -> dict | None:
@@ -127,8 +127,8 @@ def get_upload(upload_id: str, user_id: str | None = None) -> dict | None:
     query = db.table("uploads").select("*").eq("id", upload_id)
     if user_id:
         query = query.eq("user_id", user_id)
-    result = query.maybe_single().execute()
-    return result.data
+    result = query.execute()
+    return result.data[0] if result.data else None
 
 
 def list_uploads(user_id: str, limit: int = 50) -> list[dict]:
@@ -206,8 +206,8 @@ def list_clips(category: str | None = None) -> list[dict]:
 
 def get_profile(user_id: str) -> dict | None:
     db = get_client()
-    result = db.table("profiles").select("*").eq("user_id", user_id).maybe_single().execute()
-    return result.data
+    result = db.table("profiles").select("*").eq("user_id", user_id).execute()
+    return result.data[0] if result.data else None
 
 
 def create_profile(user_id: str, username: str) -> dict:
@@ -251,10 +251,9 @@ def is_following(follower_id: str, following_id: str) -> bool:
         .select("follower_id")
         .eq("follower_id", follower_id)
         .eq("following_id", following_id)
-        .maybe_single()
         .execute()
     )
-    return result.data is not None
+    return bool(result.data)
 
 
 def list_following(user_id: str) -> list[dict]:
@@ -289,8 +288,8 @@ def create_post(job_id: str, user_id: str, audio_bucket: str, audio_path: str, t
 
 def get_post(post_id: str) -> dict | None:
     db = get_client()
-    result = db.table("posts").select("*").eq("id", post_id).maybe_single().execute()
-    return result.data
+    result = db.table("posts").select("*").eq("id", post_id).execute()
+    return result.data[0] if result.data else None
 
 
 def get_following_recent_posts(user_id: str, limit: int = 20) -> list[dict]:
@@ -358,8 +357,8 @@ def create_reaction(post_id: str, user_id: str, emoji: str, timestamp_s: float) 
 
 def get_user_stats(user_id: str) -> dict | None:
     db = get_client()
-    result = db.table("user_stats").select("*").eq("user_id", user_id).maybe_single().execute()
-    return result.data
+    result = db.table("user_stats").select("*").eq("user_id", user_id).execute()
+    return result.data[0] if result.data else None
 
 
 def upsert_user_stats(user_id: str, stats: dict) -> None:
@@ -375,7 +374,7 @@ def count_completed_jobs_today(user_id: str) -> int:
         .select("id", count="exact")
         .eq("user_id", user_id)
         .eq("status", "completed")
-        .gte("completed_at", "now()::date")
+        .gte("completed_at", datetime.now(timezone.utc).date().isoformat())
         .execute()
     )
     return result.count or 0
