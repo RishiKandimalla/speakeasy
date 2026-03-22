@@ -2,10 +2,11 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { StatCard } from '../components/StatCard';
+import { useAuth } from '../context/AuthContext';
 import { getStubDashboardStats } from '../lib/stubAnalysis';
 import { listSavedVideos } from '../lib/savedVideos';
 import type { HomeStackParamList } from '../navigation/types';
@@ -16,8 +17,17 @@ type Nav = NativeStackNavigationProp<HomeStackParamList, 'HomeDashboard'>;
 export function HomeDashboardScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
+  const { user, signOut } = useAuth();
   const stats = getStubDashboardStats();
   const [totalVideos, setTotalVideos] = useState(stats.totalVideos);
+
+  const handleSignOut = useCallback(async () => {
+    try {
+      await signOut();
+    } catch {
+      Alert.alert('Error', 'Failed to sign out');
+    }
+  }, [signOut]);
 
   const refreshTotalVideos = useCallback(async () => {
     if (Platform.OS === 'web') {
@@ -57,6 +67,7 @@ export function HomeDashboardScreen() {
             accessibilityRole="button"
             accessibilityLabel="Profile"
             style={styles.iconBtn}
+            onPress={() => Alert.alert('Account', user?.email ?? 'Unknown')}
           >
             <Ionicons name="person-circle-outline" size={28} color={colors.textSecondary} />
           </Pressable>
@@ -65,6 +76,7 @@ export function HomeDashboardScreen() {
             accessibilityRole="button"
             accessibilityLabel="Log out"
             style={styles.iconBtn}
+            onPress={handleSignOut}
           >
             <Ionicons name="log-out-outline" size={24} color={colors.textSecondary} />
           </Pressable>
