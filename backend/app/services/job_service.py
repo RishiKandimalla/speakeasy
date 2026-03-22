@@ -3,16 +3,14 @@ from app.db import queries
 from app.models.job import CreateJobResponse, JobStatusResponse, JobResultResponse
 from app.services import storage_service
 
-PLACEHOLDER_USER_ID = "00000000-0000-0000-0000-000000000000"
 
-
-def create_job(upload_id: str, options: dict, context: dict | None) -> CreateJobResponse:
-    upload = queries.get_upload(upload_id)
+def create_job(user_id: str, upload_id: str, options: dict, context: dict | None) -> CreateJobResponse:
+    upload = queries.get_upload(upload_id, user_id=user_id)
     if not upload:
         raise HTTPException(status_code=404, detail="Upload not found")
 
     job = queries.create_job(
-        user_id=PLACEHOLDER_USER_ID,
+        user_id=user_id,
         upload_id=upload_id,
         options=options,
         context=context,
@@ -20,8 +18,8 @@ def create_job(upload_id: str, options: dict, context: dict | None) -> CreateJob
     return CreateJobResponse(job_id=job["id"], status=job["status"], stage=job["stage"])
 
 
-def get_job_status(job_id: str) -> JobStatusResponse:
-    job = queries.get_job(job_id)
+def get_job_status(job_id: str, user_id: str) -> JobStatusResponse:
+    job = queries.get_job(job_id, user_id=user_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     return JobStatusResponse(
@@ -33,8 +31,8 @@ def get_job_status(job_id: str) -> JobStatusResponse:
     )
 
 
-def get_job_result(job_id: str) -> JobResultResponse:
-    job = queries.get_job(job_id)
+def get_job_result(job_id: str, user_id: str) -> JobResultResponse:
+    job = queries.get_job(job_id, user_id=user_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     if job["status"] != "completed":

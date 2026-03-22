@@ -3,13 +3,16 @@ import { NavigationContainer, DefaultTheme, type Theme } from '@react-navigation
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
+import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { AuthProvider, useAuth } from './src/context/AuthContext';
 import type { HomeStackParamList } from './src/navigation/types';
 import { AnalysisLoadingScreen } from './src/screens/AnalysisLoadingScreen';
 import { AnalysisResultsScreen } from './src/screens/AnalysisResultsScreen';
 import { CreateVideoScreen } from './src/screens/CreateVideoScreen';
 import { HomeDashboardScreen } from './src/screens/HomeDashboardScreen';
+import { LoginScreen } from './src/screens/LoginScreen';
 import { RecordVideoScreen } from './src/screens/RecordVideoScreen';
 import { CloudVideosScreen } from './src/screens/CloudVideosScreen';
 import { SavedVideosScreen } from './src/screens/SavedVideosScreen';
@@ -70,53 +73,75 @@ function HomeStackNavigator() {
   );
 }
 
+function RootNavigator() {
+  const { session, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (!session) {
+    return <LoginScreen />;
+  }
+
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
+        },
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textMuted,
+      }}
+    >
+      <Tab.Screen
+        name="Home"
+        component={HomeStackNavigator}
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Cloud"
+        component={CloudVideosScreen}
+        options={{
+          title: 'Cloud',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="cloud-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Saved"
+        component={SavedVideosScreen}
+        options={{
+          title: 'Saved',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="folder-outline" size={size} color={color} />
+          ),
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
+
 export default function App() {
   return (
     <SafeAreaProvider>
-      <NavigationContainer theme={navigationTheme}>
-        <Tab.Navigator
-          screenOptions={{
-            headerShown: false,
-            tabBarStyle: {
-              backgroundColor: colors.surface,
-              borderTopColor: colors.border,
-            },
-            tabBarActiveTintColor: colors.primary,
-            tabBarInactiveTintColor: colors.textMuted,
-          }}
-        >
-          <Tab.Screen
-            name="Home"
-            component={HomeStackNavigator}
-            options={{
-              title: 'Home',
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="home-outline" size={size} color={color} />
-              ),
-            }}
-          />
-          <Tab.Screen
-            name="Cloud"
-            component={CloudVideosScreen}
-            options={{
-              title: 'Cloud',
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="cloud-outline" size={size} color={color} />
-              ),
-            }}
-          />
-          <Tab.Screen
-            name="Saved"
-            component={SavedVideosScreen}
-            options={{
-              title: 'Saved',
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="folder-outline" size={size} color={color} />
-              ),
-            }}
-          />
-        </Tab.Navigator>
-      </NavigationContainer>
+      <AuthProvider>
+        <NavigationContainer theme={navigationTheme}>
+          <RootNavigator />
+        </NavigationContainer>
+      </AuthProvider>
       <StatusBar style="light" />
     </SafeAreaProvider>
   );

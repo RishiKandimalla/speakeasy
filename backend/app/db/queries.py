@@ -18,9 +18,12 @@ def create_job(user_id: str, upload_id: str, options: dict, context: dict | None
     return result.data[0]
 
 
-def get_job(job_id: str) -> dict | None:
+def get_job(job_id: str, user_id: str | None = None) -> dict | None:
     db = get_client()
-    result = db.table("jobs").select("*").eq("id", job_id).maybe_single().execute()
+    query = db.table("jobs").select("*").eq("id", job_id)
+    if user_id:
+        query = query.eq("user_id", user_id)
+    result = query.maybe_single().execute()
     return result.data
 
 
@@ -106,17 +109,21 @@ def get_job_analysis(job_id: str) -> dict | None:
     return result.data
 
 
-def get_upload(upload_id: str) -> dict | None:
+def get_upload(upload_id: str, user_id: str | None = None) -> dict | None:
     db = get_client()
-    result = db.table("uploads").select("*").eq("id", upload_id).maybe_single().execute()
+    query = db.table("uploads").select("*").eq("id", upload_id)
+    if user_id:
+        query = query.eq("user_id", user_id)
+    result = query.maybe_single().execute()
     return result.data
 
 
-def list_uploads(limit: int = 50) -> list[dict]:
+def list_uploads(user_id: str, limit: int = 50) -> list[dict]:
     db = get_client()
     result = (
         db.table("uploads")
         .select("*")
+        .eq("user_id", user_id)
         .order("created_at", desc=True)
         .limit(limit)
         .execute()
