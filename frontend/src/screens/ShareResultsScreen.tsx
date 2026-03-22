@@ -14,21 +14,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { publishPost } from '../lib/api';
 import type { HomeStackScreenProps } from '../navigation/types';
 import type { AnalysisResult } from '../types/analysis';
-import { fontFamily } from '../theme';
+import { authColors, spacing } from '../theme';
 
 // ── design tokens ─────────────────────────────────────────────────────────────
 
 const R = {
-  bg: '#fffae0',
+  bg: '#FFFAE0',
   cardBg: 'rgba(255,255,255,0.55)',
   cardBorder: 'rgba(38,49,3,0.18)',
   text: '#263103',
-  textMuted: '#6b7280',
-  textSoft: '#8a8070',
-  accent: '#5a6b40',
-  accentLight: 'rgba(90,107,64,0.1)',
-  unselectedIconBg: 'rgba(138,128,112,0.2)',
-  btnBg: '#4a5240',
+  textMuted: '#6B7280',
+  textSoft: '#8A8070',
+  accent: '#5A6B40',
+  accentLight: 'rgba(90,107,64,0.10)',
+  unselectedIconBg: 'rgba(138,128,112,0.20)',
+  // Primary button — Figma: #757D5C
+  btnBg: '#757D5C',
   cancelBg: 'rgba(255,255,255,0.55)',
 } as const;
 
@@ -50,6 +51,7 @@ function VideoSummaryCard({ result }: { result: AnalysisResult }) {
 
   return (
     <View style={vs.card}>
+      {/* Figma: Corben 400 18px #263103 */}
       <Text style={vs.title}>Video Summary</Text>
       <View style={vs.rows}>
         <View style={vs.row}>
@@ -85,24 +87,32 @@ const vs = StyleSheet.create({
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.10,
     shadowRadius: 3,
     elevation: 2,
   },
   title: {
-    fontFamily: fontFamily.display,
+    fontFamily: 'Corben_400Regular',
     fontSize: 18,
+    lineHeight: 27,
     color: R.text,
     marginBottom: 20,
+    includeFontPadding: false,
   },
   rows: { gap: 16 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  label: {
+    fontFamily: 'Jost_400Regular',
+    fontSize: 14,
+    lineHeight: 21,
+    color: R.textMuted,
   },
-  label: { fontFamily: fontFamily.body, fontSize: 14, color: R.textMuted },
-  value: { fontFamily: fontFamily.bodyMedium, fontSize: 16, color: R.text },
+  value: {
+    fontFamily: 'Jost_500Medium',
+    fontSize: 16,
+    lineHeight: 24,
+    color: R.text,
+  },
   scorePill: {
     backgroundColor: R.accent,
     borderRadius: 999,
@@ -112,8 +122,9 @@ const vs = StyleSheet.create({
     alignItems: 'center',
   },
   scoreText: {
-    fontFamily: fontFamily.bodyMedium,
+    fontFamily: 'Jost_500Medium',
     fontSize: 16,
+    lineHeight: 24,
     color: 'white',
   },
 });
@@ -133,46 +144,32 @@ function PrivacySettingsCard({
     <View style={ps.card}>
       <Text style={ps.title}>Privacy Settings</Text>
       <View style={{ gap: 12 }}>
-        {/* Public option */}
         <Pressable
           style={[ps.option, selected === 'public' && ps.optionSelected]}
           onPress={() => onChange('public')}
         >
           <View style={[ps.iconCircle, selected === 'public' && ps.iconCircleSelected]}>
-            <Ionicons
-              name="globe-outline"
-              size={22}
-              color={selected === 'public' ? 'white' : '#8a8070'}
-            />
+            <Ionicons name="globe-outline" size={22} color={selected === 'public' ? 'white' : '#8A8070'} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={ps.optionTitle}>Public</Text>
             <Text style={ps.optionDesc}>Share to your profile and the community feed</Text>
           </View>
-          {selected === 'public' && (
-            <Ionicons name="checkmark" size={20} color={R.accent} />
-          )}
+          {selected === 'public' && <Ionicons name="checkmark" size={20} color={R.accent} />}
         </Pressable>
 
-        {/* Private option */}
         <Pressable
           style={[ps.option, selected === 'private' && ps.optionSelected]}
           onPress={() => onChange('private')}
         >
           <View style={[ps.iconCircle, selected === 'private' && ps.iconCircleSelected]}>
-            <Ionicons
-              name="lock-closed-outline"
-              size={22}
-              color={selected === 'private' ? 'white' : '#8a8070'}
-            />
+            <Ionicons name="lock-closed-outline" size={22} color={selected === 'private' ? 'white' : '#8A8070'} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={ps.optionTitle}>Private</Text>
             <Text style={ps.optionDesc}>Save to your account only (visible only to you)</Text>
           </View>
-          {selected === 'private' && (
-            <Ionicons name="checkmark" size={20} color={R.accent} />
-          )}
+          {selected === 'private' && <Ionicons name="checkmark" size={20} color={R.accent} />}
         </Pressable>
       </View>
     </View>
@@ -189,21 +186,23 @@ const ps = StyleSheet.create({
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.10,
     shadowRadius: 3,
     elevation: 2,
   },
   title: {
-    fontFamily: fontFamily.display,
+    fontFamily: 'Corben_400Regular',
     fontSize: 18,
+    lineHeight: 27,
     color: R.text,
     marginBottom: 20,
+    includeFontPadding: false,
   },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(255,255,255,0.30)',
     borderWidth: 1.27,
     borderColor: R.cardBorder,
     borderRadius: 14,
@@ -225,20 +224,22 @@ const ps = StyleSheet.create({
     backgroundColor: R.accent,
   },
   optionTitle: {
-    fontFamily: fontFamily.display,
-    fontSize: 18,
+    fontFamily: 'Corben_400Regular',
+    fontSize: 16,
+    lineHeight: 24,
     color: R.text,
     marginBottom: 2,
+    includeFontPadding: false,
   },
   optionDesc: {
-    fontFamily: fontFamily.bodyMedium,
+    fontFamily: 'Jost_400Regular',
     fontSize: 13,
+    lineHeight: 19.5,
     color: R.textMuted,
-    lineHeight: 19,
   },
 });
 
-// ── social media card (shown when public) ─────────────────────────────────────
+// ── social media card ─────────────────────────────────────────────────────────
 
 function SocialMediaCard() {
   return (
@@ -274,15 +275,17 @@ const sm = StyleSheet.create({
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.10,
     shadowRadius: 3,
     elevation: 2,
   },
   title: {
-    fontFamily: fontFamily.display,
+    fontFamily: 'Corben_400Regular',
     fontSize: 18,
+    lineHeight: 27,
     color: R.text,
     marginBottom: 16,
+    includeFontPadding: false,
   },
   socialBtn: {
     flex: 1,
@@ -308,9 +311,89 @@ const sm = StyleSheet.create({
     paddingVertical: 10,
   },
   socialText: {
-    fontFamily: fontFamily.bodyMedium,
+    fontFamily: 'Jost_500Medium',
     fontSize: 14,
+    lineHeight: 20,
     color: R.text,
+  },
+});
+
+// ── confirmation shared styles ────────────────────────────────────────────────
+
+const conf = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: R.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  // Figma: #5A6B40 circle 96×96
+  iconWrap: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: '#5A6B40',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 28,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.10,
+    shadowRadius: 15,
+    elevation: 8,
+  },
+  // Figma: Corben 400 30px #263103
+  heading: {
+    fontFamily: 'Corben_400Regular',
+    fontSize: 30,
+    lineHeight: 44,
+    color: '#263103',
+    marginBottom: 12,
+    textAlign: 'center',
+    includeFontPadding: false,
+  },
+  // Figma: Jost 400 16px #8A8070
+  sub: {
+    fontFamily: 'Jost_400Regular',
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#8A8070',
+    textAlign: 'center',
+    marginBottom: 36,
+  },
+  btnRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  // Figma: #757D5C fill, radius 14, Jost 500 14px white
+  primaryBtn: {
+    backgroundColor: '#757D5C',
+    borderRadius: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+  },
+  primaryText: {
+    fontFamily: 'Jost_500Medium',
+    fontSize: 14,
+    lineHeight: 20,
+    color: 'white',
+  },
+  // Figma: rgba(255,255,255,0.55) frosted, olive border, radius 14
+  secondaryBtn: {
+    backgroundColor: 'rgba(255,255,255,0.55)',
+    borderWidth: 1.27,
+    borderColor: 'rgba(38,49,3,0.18)',
+    borderRadius: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+  },
+  // Figma: Jost 500 14px #263103
+  secondaryText: {
+    fontFamily: 'Jost_500Medium',
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#263103',
   },
 });
 
@@ -358,73 +441,6 @@ function PostedConfirmation({ onViewProfile, onGoHome }: { onViewProfile: () => 
   );
 }
 
-const conf = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: R.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 40,
-  },
-  iconWrap: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: R.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 28,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 15,
-    elevation: 8,
-  },
-  heading: {
-    fontFamily: fontFamily.playfairSemiBold,
-    fontSize: 30,
-    color: R.text,
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  sub: {
-    fontFamily: fontFamily.body,
-    fontSize: 16,
-    color: R.textSoft,
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 36,
-  },
-  btnRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  primaryBtn: {
-    backgroundColor: R.accent,
-    borderRadius: 14,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  primaryText: {
-    fontFamily: fontFamily.bodyMedium,
-    fontSize: 14,
-    color: 'white',
-  },
-  secondaryBtn: {
-    backgroundColor: R.cardBg,
-    borderWidth: 1.27,
-    borderColor: R.cardBorder,
-    borderRadius: 14,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  secondaryText: {
-    fontFamily: fontFamily.bodyMedium,
-    fontSize: 14,
-    color: R.text,
-  },
-});
-
 // ── main screen ───────────────────────────────────────────────────────────────
 
 type Outcome = null | 'saved' | 'posted';
@@ -460,7 +476,6 @@ export function ShareResultsScreen({
       setOutcome('saved');
       return;
     }
-
     setSubmitting(true);
     try {
       await publishPost(result.job_id);
@@ -472,27 +487,13 @@ export function ShareResultsScreen({
     }
   }, [privacy, result.job_id, submitting]);
 
-  // ── confirmation screens ───────────────────────────────────────────────────
-
   if (outcome === 'saved') {
-    return (
-      <SavedConfirmation
-        onViewSaved={goProfile}
-        onGoHome={goHome}
-      />
-    );
+    return <SavedConfirmation onViewSaved={goProfile} onGoHome={goHome} />;
   }
 
   if (outcome === 'posted') {
-    return (
-      <PostedConfirmation
-        onViewProfile={goProfile}
-        onGoHome={goHome}
-      />
-    );
+    return <PostedConfirmation onViewProfile={goProfile} onGoHome={goHome} />;
   }
-
-  // ── share screen ───────────────────────────────────────────────────────────
 
   const isPublic = privacy === 'public';
 
@@ -500,10 +501,7 @@ export function ShareResultsScreen({
     <View style={styles.root}>
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: insets.bottom + 120 },
-        ]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 120 }]}
         showsVerticalScrollIndicator={false}
       >
         <VideoSummaryCard result={result} />
@@ -562,8 +560,9 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(38,49,3,0.08)',
     gap: 10,
   },
+  // Figma: #757D5C fill, Jost 500 14px white
   primaryBtn: {
-    backgroundColor: R.accent,
+    backgroundColor: R.btnBg,
     borderRadius: 14,
     paddingVertical: 14,
     flexDirection: 'row',
@@ -571,18 +570,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.10,
     shadowRadius: 3,
     elevation: 2,
   },
-  primaryBtnDisabled: {
-    opacity: 0.75,
-  },
+  primaryBtnDisabled: { opacity: 0.75 },
   primaryText: {
-    fontFamily: fontFamily.bodyMedium,
+    fontFamily: 'Jost_500Medium',
     fontSize: 14,
+    lineHeight: 20,
     color: 'white',
   },
+  // Figma: frosted cancel button
   cancelBtn: {
     backgroundColor: R.cancelBg,
     borderWidth: 1.27,
@@ -592,8 +591,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelText: {
-    fontFamily: fontFamily.bodyMedium,
+    fontFamily: 'Jost_500Medium',
     fontSize: 14,
+    lineHeight: 20,
     color: R.text,
   },
 });
