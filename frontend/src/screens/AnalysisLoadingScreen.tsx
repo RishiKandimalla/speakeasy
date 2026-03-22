@@ -40,7 +40,9 @@ export function AnalysisLoadingScreen({
         if (status.status === 'completed') {
           if (intervalRef.current) clearInterval(intervalRef.current);
           const result = await getJobResult(jobId);
-          navigation.replace('AnalysisResults', { result });
+          // mark that we're navigating here from the analysis flow so
+          // the results screen can enforce "must watch full video" behavior
+          navigation.replace('AnalysisResults', { result, fromAnalysis: true });
         } else if (status.status === 'failed') {
           if (intervalRef.current) clearInterval(intervalRef.current);
           setError(status.error_message ?? 'Analysis failed. Please try again.');

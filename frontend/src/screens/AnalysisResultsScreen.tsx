@@ -186,6 +186,7 @@ export function AnalysisResultsScreen({
   });
 
   const [currentTime, setCurrentTime] = useState(0);
+  const [isLockedUntilEnd, setIsLockedUntilEnd] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const itemYMap = useRef<Record<number, number>>({});
 
@@ -197,6 +198,15 @@ export function AnalysisResultsScreen({
     }, 300);
     return () => clearInterval(id);
   }, [player, videoUri]);
+
+  // If we were navigated here directly from analysis, lock the "view results"
+  // action until the user has watched to the end of the video once.
+  useEffect(() => {
+    const fromAnalysis = (route.params as any)?.fromAnalysis ?? false;
+    if (fromAnalysis && videoUri) {
+      setIsLockedUntilEnd(true);
+    }
+  }, [route.params, videoUri]);
 
   // Find active sentence index
   const activeSentenceIdx = sentences.findIndex(
@@ -216,8 +226,15 @@ export function AnalysisResultsScreen({
   }, [activeSentenceIdx]);
 
   const goToSummary = useCallback(() => {
+    // only allow navigation if not locked or if we've reached end
+    if (isLockedUntilEnd) {
+      const duration = player.duration ?? result.metrics?.duration ?? 0;
+      const current = player.currentTime ?? currentTime ?? 0;
+      // allow small epsilon for timing
+      if (duration > 0 && current + 0.5 < duration) return;
+    }
     navigation.navigate('AnalysisSummary', { result });
-  }, [navigation, result]);
+  }, [navigation, result, isLockedUntilEnd, player, currentTime]);
 
   return (
     <View style={styles.root}>
@@ -268,8 +285,12 @@ export function AnalysisResultsScreen({
           })}
         </View>
 
-        <Pressable style={styles.skipBtn} onPress={goToSummary}>
-          <Text style={styles.skipText}>View results</Text>
+        <Pressable
+          style={[styles.skipBtn, isLockedUntilEnd && styles.skipBtnLocked]}
+          onPress={goToSummary}
+          disabled={isLockedUntilEnd && ((player.currentTime ?? currentTime) + 0.5 < (player.duration ?? (result.metrics?.duration ?? 0)))}
+        >
+          <Text style={styles.skipText}>{isLockedUntilEnd ? 'Watch full video to view results' : 'View results'}</Text>
           <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
         </Pressable>
       </ScrollView>
@@ -319,5 +340,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
+  skipBtnLocked: { opacity: 0.45 },
   skipText: { ...typography.caption, color: colors.textMuted },
 });
