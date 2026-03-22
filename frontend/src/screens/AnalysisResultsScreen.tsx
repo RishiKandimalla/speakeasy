@@ -104,20 +104,19 @@ const sh = StyleSheet.create({
 function LiveBar({
   sentence,
   index,
+  sentenceTone,
 }: {
   sentence: Sentence | null;
   index: number;
+  sentenceTone: import('../types/analysis').SentenceTone;
 }) {
   const wpm = sentence?.wpm ?? 0;
-  const conf = sentence?.tone?.confidence ?? null;
-  const energy = sentence?.tone?.energy ?? null;
+  const conf = sentenceTone?.confidence ?? sentence?.tone?.confidence ?? null;
 
   const wpmPct = clamp((wpm / 200) * 100, 0, 100);
   const confPct = conf != null ? clamp(conf * 100, 0, 100) : null;
-  const energyPct = energy != null ? clamp(energy * 100, 0, 100) : null;
 
-  const wpmColor =
-    wpm < 100 || wpm > 180 ? '#C8842E' : authColors.cta;
+  const wpmColor = wpm < 100 || wpm > 180 ? '#C8842E' : authColors.cta;
 
   return (
     <View style={lb.wrap}>
@@ -128,24 +127,13 @@ function LiveBar({
         </View>
         <Text style={[lb.barVal, { color: wpmColor }]}>{wpm > 0 ? `${Math.round(wpm)} wpm` : '—'}</Text>
       </View>
-      {confPct != null && (
-        <View style={lb.bar}>
-          <Text style={lb.barLabel}>Confidence</Text>
-          <View style={lb.track}>
-            <View style={[lb.fill, { width: `${confPct}%` as any, backgroundColor: '#5a6b40' }]} />
-          </View>
-          <Text style={[lb.barVal, { color: '#5a6b40' }]}>{Math.round(confPct)}%</Text>
+      <View style={lb.bar}>
+        <Text style={lb.barLabel}>Confidence</Text>
+        <View style={lb.track}>
+          <View style={[lb.fill, { width: `${confPct ?? 0}%` as any, backgroundColor: '#5a6b40' }]} />
         </View>
-      )}
-      {energyPct != null && (
-        <View style={lb.bar}>
-          <Text style={lb.barLabel}>Energy</Text>
-          <View style={lb.track}>
-            <View style={[lb.fill, { width: `${energyPct}%` as any, backgroundColor: '#86cc1b' }]} />
-          </View>
-          <Text style={[lb.barVal, { color: '#86cc1b' }]}>{Math.round(energyPct)}%</Text>
-        </View>
-      )}
+        <Text style={[lb.barVal, { color: '#5a6b40' }]}>{confPct != null ? `${Math.round(confPct)}%` : '—'}</Text>
+      </View>
     </View>
   );
 }
@@ -194,11 +182,16 @@ export function AnalysisResultsScreen({
   const scrollRef = useRef<ScrollView>(null);
   const itemYMap = useRef<Record<number, number>>({});
 
-  // Auto-play video when screen loads
+  // Auto-play once the player is ready
   useEffect(() => {
-    if (videoUri && player) {
-      player.play();
-    }
+    if (!videoUri) return;
+    const sub = player.addListener('statusChange', ({ status }) => {
+      if (status === 'readyToPlay') {
+        player.play();
+        sub.remove();
+      }
+    });
+    return () => sub.remove();
   }, [player, videoUri]);
 
   // Poll video position every 300ms
@@ -272,7 +265,11 @@ export function AnalysisResultsScreen({
         {/* Live analytics header */}
         <SectionHeader title="Live analytics" />
 
-        <LiveBar sentence={activeSentence} index={activeSentenceIdx} />
+        <LiveBar
+          sentence={activeSentence}
+          index={activeSentenceIdx}
+          sentenceTone={activeSentenceIdx >= 0 ? (result.tone?.sentences_tone?.[activeSentenceIdx] ?? null) : null}
+        />
 
         {/* Live feedback feed */}
         <SectionHeader title="Live feedback from AI" sub="Synced to video" />
@@ -296,14 +293,22 @@ export function AnalysisResultsScreen({
           })}
         </View>
 
-        <Pressable
-          style={[styles.skipBtn, isLockedUntilEnd && styles.skipBtnLocked]}
-          onPress={goToSummary}
-          disabled={isLockedUntilEnd && ((player.currentTime ?? currentTime) + 0.5 < (player.duration ?? (result.metrics?.duration ?? 0)))}
-        >
-          <Text style={styles.skipText}>{isLockedUntilEnd ? 'Watch full video to view results' : 'View results'}</Text>
-          <Ionicons name="chevron-forward" size={14} color={authColors.textMuted} />
-        </Pressable>
+        <View style={styles.skipWrap}>
+          {(() => {
+            const isLocked = isLockedUntilEnd;
+            const watched = !isLocked || (player.currentTime ?? currentTime) + 0.5 >= (player.duration ?? result.metrics?.duration ?? 0);
+            return (
+              <Pressable
+                style={[styles.skipBtn, !watched && styles.skipBtnLocked]}
+                onPress={goToSummary}
+                disabled={!watched}
+              >
+                <Text style={styles.skipText}>{!watched ? 'Watch full video to proceed' : 'View full results'}</Text>
+                <Ionicons name="arrow-forward" size={16} color="#fff" />
+              </Pressable>
+            );
+          })()}
+        </View>
       </ScrollView>
     </View>
   );
@@ -342,15 +347,22 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: authColors.border,
   },
-  skipBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
+  skipWrap: {
+    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.lg,
     borderTopWidth: 1,
     borderTopColor: authColors.border,
   },
-  skipBtnLocked: { opacity: 0.45 },
-  skipText: { fontFamily: fontFamily.body, fontSize: 13, fontWeight: '500' as const, letterSpacing: 0.3, color: authColors.textMuted },
+  skipBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: '#4CAF50',
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+  },
+  skipBtnLocked: { backgroundColor: '#B0BEC5' },
+  skipText: { fontFamily: fontFamily.bodySemiBold, fontSize: 15, color: '#fff' },
 });
