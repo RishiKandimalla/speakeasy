@@ -43,7 +43,7 @@ export function CreateVideoScreen() {
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['videos'],
-      videoQuality: 1,
+      videoQuality: ImagePicker.UIImagePickerControllerQualityType.Low,
     });
     if (!result.canceled && result.assets[0]?.uri) {
       navigation.navigate('UploadedVideoReview', {

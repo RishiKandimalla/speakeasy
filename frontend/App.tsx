@@ -24,6 +24,7 @@ import { AnalysisResultsScreen } from './src/screens/AnalysisResultsScreen';
 import { AnalysisSummaryScreen } from './src/screens/AnalysisSummaryScreen';
 import { ShareResultsScreen } from './src/screens/ShareResultsScreen';
 import { NotificationsScreen } from './src/screens/NotificationsScreen';
+import { PostReactionsScreen } from './src/screens/PostReactionsScreen';
 import { CreateVideoScreen } from './src/screens/CreateVideoScreen';
 import { FeedScreen } from './src/screens/FeedScreen';
 import { HomeDashboardScreen } from './src/screens/HomeDashboardScreen';
@@ -112,6 +113,11 @@ function HomeStackNavigator() {
         name="Notifications"
         component={NotificationsScreen}
         options={{ title: 'Notifications' }}
+      />
+      <HomeStack.Screen
+        name="PostReactions"
+        component={PostReactionsScreen}
+        options={{ title: 'Reactions' }}
       />
     </HomeStack.Navigator>
   );

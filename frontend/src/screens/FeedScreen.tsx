@@ -12,7 +12,7 @@ import {
   ViewToken,
   useWindowDimensions,
 } from 'react-native';
-import { useFocusEffect, useIsFocused } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { setStatusBarStyle } from 'expo-status-bar';
 import { useVideoPlayer, VideoView } from 'expo-video';
@@ -23,10 +23,12 @@ import {
   ClipResponse,
   EMOJI_DISPLAY,
   FeedPostResponse,
+  getReactionSummary,
   listClips,
   listPublicFeed,
   REACTION_EMOJIS,
   type ReactionEmoji,
+  type ReactionSummary,
 } from '../lib/api';
 import { colors, fontFamily, radius, spacing, typography } from '../theme';
 import type { Word } from '../types/analysis';
@@ -315,15 +317,21 @@ function ReactionButton({
 function ReactionBar({
   postId,
   currentTime,
+  onReacted,
 }: {
   postId: string;
   currentTime: number;
+  onReacted?: () => void;
 }) {
   const handleReaction = useCallback(
     (emoji: ReactionEmoji) => {
-      void addReaction(postId, emoji, currentTime).catch(() => {});
+      void addReaction(postId, emoji, currentTime)
+        .then(() => {
+          onReacted?.();
+        })
+        .catch(() => {});
     },
-    [postId, currentTime],
+    [postId, currentTime, onReacted],
   );
 
   return (
@@ -386,6 +394,71 @@ function FeedBackgroundVideo({
 // FeedVideoItem
 // ---------------------------------------------------------------------------
 
+function ReactionSummaryBar({
+  postId,
+  shouldPlay,
+  refreshKey,
+}: {
+  postId: string;
+  shouldPlay: boolean;
+  refreshKey: number;
+}) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const navigation = useNavigation<any>();
+  const [summary, setSummary] = useState<ReactionSummary | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!shouldPlay) return;
+    let cancelled = false;
+    setLoading(true);
+    void getReactionSummary(postId)
+      .then((s) => {
+        if (!cancelled) setSummary(s);
+      })
+      .catch(() => {
+        if (!cancelled) setSummary(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [postId, shouldPlay, refreshKey]);
+
+  if (!shouldPlay) return null;
+
+  const topEmojis = summary
+    ? Object.entries(summary.emoji_counts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([key]) => EMOJI_DISPLAY[key as ReactionEmoji] ?? key)
+        .join('')
+    : '';
+
+  const countLabel = loading
+    ? '…'
+    : summary
+      ? `${summary.total_reactions} reaction${summary.total_reactions !== 1 ? 's' : ''}`
+      : 'View reactions';
+
+  return (
+    <Pressable
+      style={styles.summaryBar}
+      onPress={() =>
+        navigation.navigate('Home', {
+          screen: 'PostReactions',
+          params: { postId },
+        })
+      }
+    >
+      {topEmojis ? <Text style={styles.summaryEmojis}>{topEmojis}</Text> : null}
+      <Text style={styles.summaryCount}>{countLabel}</Text>
+    </Pressable>
+  );
+}
+
 function FeedVideoItem({
   item,
   shouldPlay,
@@ -426,6 +499,11 @@ function FeedVideoItem({
 
   const initial = item.username ? item.username.charAt(0).toUpperCase() : '?';
 
+  const [summaryRefresh, setSummaryRefresh] = useState(0);
+  const bumpSummary = useCallback(() => {
+    setSummaryRefresh((n) => n + 1);
+  }, []);
+
   return (
     <View style={[styles.page, { height }]}>
       {item.backgroundClip ? (
@@ -444,7 +522,14 @@ function FeedVideoItem({
       </View>
 
       {/* Reaction bar – right side */}
-      <ReactionBar postId={item.post_id} currentTime={currentTime} />
+      <ReactionBar postId={item.post_id} currentTime={currentTime} onReacted={bumpSummary} />
+
+      {/* Tappable reaction summary */}
+      <ReactionSummaryBar
+        postId={item.post_id}
+        shouldPlay={shouldPlay}
+        refreshKey={summaryRefresh}
+      />
 
       {/* Live captions */}
       <CaptionOverlay transcript={transcript} currentTime={currentTime} />
@@ -727,6 +812,29 @@ const styles = StyleSheet.create({
   },
   reactionEmoji: {
     fontSize: 24,
+  },
+
+  // Reaction summary bar (bottom-left, above captions)
+  summaryBar: {
+    position: 'absolute',
+    left: spacing.xl,
+    bottom: 120,
+    zIndex: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  summaryEmojis: {
+    fontSize: 18,
+  },
+  summaryCount: {
+    fontFamily: fontFamily.body,
+    fontSize: 13,
+    color: '#fff',
   },
 
   // Loading / error / empty states

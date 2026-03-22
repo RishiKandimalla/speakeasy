@@ -2,7 +2,13 @@ import logging
 
 from fastapi import HTTPException
 from app.db import queries
-from app.models.post import PublishPostResponse, FeedPostResponse, ReactionResponse, ReactionSummaryResponse
+from app.models.post import (
+    PublishPostResponse,
+    FeedPostResponse,
+    OwnerReactionsSummaryResponse,
+    ReactionResponse,
+    ReactionSummaryResponse,
+)
 from app.services import storage_service
 from app.services.profile_service import get_or_create_profile
 
@@ -133,4 +139,13 @@ def get_reaction_summary(post_id: str) -> ReactionSummaryResponse:
         emoji_counts=summary["emoji_counts"],
         total_reactions=summary["total_reactions"],
         unique_reactors=summary["unique_reactors"],
+    )
+
+
+def get_owner_reactions_summary(user_id: str) -> OwnerReactionsSummaryResponse:
+    stats = queries.get_owner_reaction_stats(user_id)
+    return OwnerReactionsSummaryResponse(
+        emoji_counts=stats["emoji_counts"],
+        total_reactions=stats["total_reactions"],
+        unique_reactors=stats["unique_reactors"],
     )

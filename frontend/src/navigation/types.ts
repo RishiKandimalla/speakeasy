@@ -11,6 +11,7 @@ export type HomeStackParamList = {
   AnalysisSummary: { result: AnalysisResult };
   ShareResults: { result: AnalysisResult };
   Notifications: undefined;
+  PostReactions: { postId: string };
 };
 
 export type AuthStackParamList = {

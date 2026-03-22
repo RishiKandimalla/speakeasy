@@ -498,6 +498,63 @@ def get_reactions_for_post(post_id: str) -> list[dict]:
     return result.data or []
 
 
+def get_owner_reaction_stats(user_id: str) -> dict:
+    """Total reactions and distinct reactors across all posts owned by user_id."""
+    db = get_client()
+    post_ids_result = db.table("posts").select("id").eq("user_id", user_id).execute()
+    post_ids = [r["id"] for r in (post_ids_result.data or [])]
+    if not post_ids:
+        return {"emoji_counts": {}, "total_reactions": 0, "unique_reactors": 0}
+
+    emoji_counts: dict[str, int] = {}
+    unique_users: set[str] = set()
+    total = 0
+
+    # Chunk .in_ lists to stay within PostgREST limits
+    chunk_size = 80
+    for i in range(0, len(post_ids), chunk_size):
+        chunk = post_ids[i : i + chunk_size]
+        result = (
+            db.table("post_reactions")
+            .select("emoji, user_id")
+            .in_("post_id", chunk)
+            .execute()
+        )
+        for row in result.data or []:
+            total += 1
+            e = row["emoji"]
+            emoji_counts[e] = emoji_counts.get(e, 0) + 1
+            unique_users.add(str(row["user_id"]))
+
+    return {
+        "emoji_counts": emoji_counts,
+        "total_reactions": total,
+        "unique_reactors": len(unique_users),
+    }
+
+
+def get_all_reactions_for_user(user_id: str, limit: int = 500, offset: int = 0) -> list[dict]:
+    """Returns all reactions on posts owned by the given user."""
+    db = get_client()
+    post_ids_result = db.table("posts").select("id").eq("user_id", user_id).execute()
+    post_ids = [r["id"] for r in (post_ids_result.data or [])]
+    if not post_ids:
+        return []
+    all_rows: list[dict] = []
+    chunk_size = 80
+    for i in range(0, len(post_ids), chunk_size):
+        chunk = post_ids[i : i + chunk_size]
+        result = (
+            db.table("post_reactions")
+            .select("id, post_id, emoji, timestamp_s, created_at")
+            .in_("post_id", chunk)
+            .execute()
+        )
+        all_rows.extend(result.data or [])
+    all_rows.sort(key=lambda r: str(r.get("created_at") or ""), reverse=True)
+    return all_rows[offset : offset + limit]
+
+
 def has_user_reacted_to_post(post_id: str, user_id: str) -> bool:
     db = get_client()
     result = (

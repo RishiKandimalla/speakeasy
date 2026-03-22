@@ -8,16 +8,20 @@ import type { RouteProp } from '@react-navigation/native';
 import { NotificationBell } from '../components/NotificationBell';
 import { SlideOutMenu } from '../components/SlideOutMenu';
 import {
+  EMOJI_DISPLAY,
   getMyProfile,
+  getMyReactionsSummary,
   getProfile,
-  getReactionSummary,
   listJobs,
+  listMyReactions,
   listUserPosts,
   publishPost,
   type FeedPostResponse,
   type JobSummary,
+  type OwnerReactionsSummary,
   type ProfileData,
-  type ReactionSummary,
+  type ReactionEmoji,
+  type ReactionItem,
 } from '../lib/api';
 import type { RootTabParamList } from '../navigation/types';
 import { authColors, fontFamily, radius, spacing } from '../theme';
@@ -56,9 +60,12 @@ export function ProfileScreen() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [jobs, setJobs] = useState<JobSummary[]>([]);
   const [publicPosts, setPublicPosts] = useState<FeedPostResponse[]>([]);
-  const [reactionSummaries, setReactionSummaries] = useState<Record<string, ReactionSummary>>({});
+  const [ownerReactionStats, setOwnerReactionStats] = useState<OwnerReactionsSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [publishingJobId, setPublishingJobId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'posts' | 'reactions'>('posts');
+  const [allReactions, setAllReactions] = useState<ReactionItem[] | null>(null);
+  const [reactionsLoading, setReactionsLoading] = useState(false);
 
   const isOwnProfile = routeUserId == null || (viewerProfile != null && routeUserId === viewerProfile.user_id);
 
@@ -74,27 +81,18 @@ export function ProfileScreen() {
           const targetUserId = routeUserId ?? me.user_id;
           const own = targetUserId === me.user_id;
           if (own) {
-            const [userJobs, ownPosts] = await Promise.all([
+            const [userJobs, reactionStats] = await Promise.all([
               listJobs(50),
-              listUserPosts(targetUserId, 50),
+              getMyReactionsSummary().catch(() => null),
             ]);
             if (cancelled) return;
             setProfile(me);
             setJobs(userJobs.filter((job) => job.status === 'completed'));
             setPublicPosts([]);
-
-            const summaries: Record<string, ReactionSummary> = {};
-            await Promise.all(
-              ownPosts.map(async (p) => {
-                try {
-                  const s = await getReactionSummary(p.post_id);
-                  summaries[p.post_id] = s;
-                } catch {
-                  // ignore individual failures
-                }
-              }),
-            );
-            if (!cancelled) setReactionSummaries(summaries);
+            if (!cancelled) {
+              setOwnerReactionStats(reactionStats);
+              setAllReactions(null);
+            }
           } else {
             const [targetProfile, posts] = await Promise.all([
               getProfile(targetUserId),
@@ -104,7 +102,7 @@ export function ProfileScreen() {
             setProfile(targetProfile);
             setPublicPosts(posts);
             setJobs([]);
-            setReactionSummaries({});
+            setOwnerReactionStats(null);
           }
         } catch (e) {
           if (!cancelled) {
@@ -144,17 +142,27 @@ export function ProfileScreen() {
 
   const headerTitle = useMemo(() => (isOwnProfile ? 'My posts' : 'Public posts'), [isOwnProfile]);
 
-  const aggregateReactions = useMemo(() => {
-    const summaryList = Object.values(reactionSummaries);
-    if (!summaryList.length) return null;
-    let total = 0;
-    let uniqueReactors = 0;
-    for (const s of summaryList) {
-      total += s.total_reactions;
-      uniqueReactors += s.unique_reactors;
+  const aggregateReactions =
+    ownerReactionStats && ownerReactionStats.total_reactions > 0
+      ? {
+          total: ownerReactionStats.total_reactions,
+          uniqueReactors: ownerReactionStats.unique_reactors,
+        }
+      : null;
+
+  const handleSwitchToReactions = useCallback(async () => {
+    setActiveTab('reactions');
+    if (allReactions !== null) return;
+    setReactionsLoading(true);
+    try {
+      const data = await listMyReactions(2000, 0);
+      setAllReactions(data);
+    } catch {
+      setAllReactions([]);
+    } finally {
+      setReactionsLoading(false);
     }
-    return { total, uniqueReactors };
-  }, [reactionSummaries]);
+  }, [allReactions]);
 
   return (
     <>
@@ -236,13 +244,77 @@ export function ProfileScreen() {
             )}
 
             <View style={styles.tabHeader}>
-              <View style={styles.tabItemActive}>
-                <Ionicons name={isOwnProfile ? 'grid-outline' : 'musical-notes-outline'} size={16} color="#1F2A16" />
-                <Text style={styles.tabItemTextActive}>{headerTitle}</Text>
-              </View>
+              <Pressable
+                style={activeTab === 'posts' ? styles.tabItemActive : styles.tabItemInactive}
+                onPress={() => setActiveTab('posts')}
+              >
+                <Ionicons
+                  name={isOwnProfile ? 'grid-outline' : 'musical-notes-outline'}
+                  size={16}
+                  color={activeTab === 'posts' ? '#1F2A16' : '#8E95A8'}
+                />
+                <Text style={activeTab === 'posts' ? styles.tabItemTextActive : styles.tabItemTextInactive}>
+                  {headerTitle}
+                </Text>
+              </Pressable>
+              {isOwnProfile && (
+                <Pressable
+                  style={activeTab === 'reactions' ? styles.tabItemActive : styles.tabItemInactive}
+                  onPress={handleSwitchToReactions}
+                >
+                  <Ionicons
+                    name="sparkles-outline"
+                    size={16}
+                    color={activeTab === 'reactions' ? '#1F2A16' : '#8E95A8'}
+                  />
+                  <Text style={activeTab === 'reactions' ? styles.tabItemTextActive : styles.tabItemTextInactive}>
+                    All Reactions
+                  </Text>
+                </Pressable>
+              )}
             </View>
 
-            {isOwnProfile ? (
+            {activeTab === 'reactions' && isOwnProfile ? (
+              reactionsLoading ? (
+                <View style={styles.loadingBox}>
+                  <ActivityIndicator color="#678A45" />
+                </View>
+              ) : !allReactions || allReactions.length === 0 ? (
+                <View style={styles.emptyGrid}>
+                  <Text style={styles.emptyGridText}>No reactions yet. Share your posts!</Text>
+                </View>
+              ) : (
+                <View style={styles.reactionsScroll}>
+                  {aggregateReactions && (
+                    <View style={styles.reactionsAggHeader}>
+                      <Text style={styles.reactionsAggTitle}>
+                        {aggregateReactions.total} reaction{aggregateReactions.total !== 1 ? 's' : ''} from{' '}
+                        {aggregateReactions.uniqueReactors} unique reactor{aggregateReactions.uniqueReactors !== 1 ? 's' : ''}
+                      </Text>
+                    </View>
+                  )}
+                  <Text style={styles.reactionsEveryLabel}>
+                    Every. Single. Reaction. ({allReactions.length})
+                  </Text>
+                  {allReactions.map((r, i) => (
+                    <View key={r.reaction_id} style={styles.reactionsRow}>
+                      <Text style={styles.reactionsIndex}>#{i + 1}</Text>
+                      <Text style={styles.reactionsBigEmoji}>
+                        {EMOJI_DISPLAY[r.emoji as ReactionEmoji] ?? r.emoji}
+                      </Text>
+                      <Text style={styles.reactionsTimestamp}>
+                        at {Math.floor(r.timestamp_s / 60)}:{String(Math.round(r.timestamp_s % 60)).padStart(2, '0')}
+                      </Text>
+                    </View>
+                  ))}
+                  <View style={styles.reactionsBottom}>
+                    <Text style={styles.reactionsBottomText}>
+                      You scrolled through {allReactions.length} reaction{allReactions.length !== 1 ? 's' : ''}. Impressive dedication.
+                    </Text>
+                  </View>
+                </View>
+              )
+            ) : isOwnProfile ? (
               !hasOwnPosts ? (
                 <View style={styles.emptyGrid}>
                   <Text style={styles.emptyGridText}>No videos yet. Record one to get started!</Text>
@@ -464,6 +536,76 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.bodyMedium,
     color: '#1F2A16',
     fontSize: 14,
+  },
+  tabItemInactive: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent',
+  },
+  tabItemTextInactive: {
+    fontFamily: fontFamily.body,
+    color: '#8E95A8',
+    fontSize: 14,
+  },
+  reactionsScroll: {
+    marginTop: spacing.md,
+  },
+  reactionsAggHeader: {
+    marginBottom: spacing.lg,
+    alignItems: 'center',
+  },
+  reactionsAggTitle: {
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: 16,
+    color: '#4D5A37',
+    textAlign: 'center',
+  },
+  reactionsEveryLabel: {
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: 15,
+    color: '#4D5A37',
+    marginBottom: spacing.md,
+    textAlign: 'center',
+  },
+  reactionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EDEEE8',
+  },
+  reactionsIndex: {
+    fontFamily: fontFamily.body,
+    fontSize: 13,
+    color: '#B8BFAB',
+    width: 48,
+  },
+  reactionsBigEmoji: {
+    fontSize: 36,
+  },
+  reactionsTimestamp: {
+    fontFamily: fontFamily.body,
+    fontSize: 14,
+    color: '#8E95A8',
+    marginLeft: 'auto',
+  },
+  reactionsBottom: {
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.xxl,
+    alignItems: 'center',
+  },
+  reactionsBottomText: {
+    fontFamily: fontFamily.body,
+    fontSize: 14,
+    color: '#B8BFAB',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   emptyGrid: {
     paddingTop: spacing.xxl,
