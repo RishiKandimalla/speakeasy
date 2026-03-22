@@ -156,8 +156,9 @@ export async function getMyProfile(): Promise<ProfileData> {
 }
 
 export async function getProfile(userId: string): Promise<ProfileData> {
+  const headers = await getAuthHeaders();
   const res = await fetch(`${API_BASE}/v1/profile/${userId}`, {
-    headers: { Accept: 'application/json' },
+    headers,
   });
   return parseJsonOrThrow(res) as Promise<ProfileData>;
 }

@@ -38,6 +38,7 @@ def list_jobs(user_id: str, limit: int = 20, offset: int = 0) -> list[JobSummary
         job_id = job["id"]
         video_url = None
         scores = metrics = feedback = tone = transcript = None
+        is_public = bool(job.get("is_public", False))
 
         if job["status"] == "completed":
             outputs = queries.get_job_outputs(job_id) or {}
@@ -52,6 +53,10 @@ def list_jobs(user_id: str, limit: int = 20, offset: int = 0) -> list[JobSummary
             feedback = analysis.get("feedback")
             tone = analysis.get("tone")
             transcript = analysis.get("transcript_json")
+            # Compatibility path: if legacy environments do not yet have
+            # jobs.is_public, infer public status from existing published post.
+            if not is_public:
+                is_public = queries.get_post_by_job_id(job_id) is not None
 
         summaries.append(JobSummaryResponse(
             job_id=job_id,
@@ -60,7 +65,7 @@ def list_jobs(user_id: str, limit: int = 20, offset: int = 0) -> list[JobSummary
             progress=job["progress"],
             created_at=job["created_at"],
             upload_id=job["upload_id"],
-            is_public=bool(job.get("is_public", False)),
+            is_public=is_public,
             video_url=video_url,
             scores=scores,
             metrics=metrics,

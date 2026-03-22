@@ -232,7 +232,10 @@ export function ProfileScreen() {
                             <Pressable
                               style={styles.publishBtn}
                               disabled={publishingJobId === job.job_id}
-                              onPress={() => void handlePublish(job.job_id)}
+                              onPress={(e) => {
+                                e.stopPropagation();
+                                void handlePublish(job.job_id);
+                              }}
                             >
                               {publishingJobId === job.job_id ? (
                                 <ActivityIndicator size="small" color="#fff" />

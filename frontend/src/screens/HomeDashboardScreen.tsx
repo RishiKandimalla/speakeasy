@@ -166,7 +166,9 @@ export function HomeDashboardScreen() {
                       </View>
                       <Text style={styles.doneText}>Daily video completed!</Text>
                     </View>
-                    <Text style={styles.reviewLink} onPress={() => navigation.navigate('Profile' as any)}>Review videos</Text>
+                    <Text style={styles.reviewLink} onPress={() => navigation.getParent()?.navigate('Profile')}>
+                      Review videos
+                    </Text>
                   </View>
                 </>
               ) : (
