@@ -56,7 +56,7 @@ export function RecordVideoScreen() {
       setCameraReady(false);
       setElapsed(0);
     }
-  }, [phase]);
+  }, [phase, elapsed]);
 
   // Timer during recording
   useEffect(() => {
@@ -274,23 +274,29 @@ export function RecordVideoScreen() {
               style={[
                 styles.circleBtn,
                 phase === 'idle' && !cameraReady && styles.dimmed,
+                phase === 'recording' && elapsed < 15 && styles.stopLocked,
+                phase === 'recording' && elapsed >= 15 && styles.stopReady,
               ]}
               onPress={
                 phase === 'idle'
                   ? () => void startRecording()
                   : () => void stopRecording()
               }
-              disabled={phase === 'idle' && !cameraReady}
+              disabled={(phase === 'idle' && !cameraReady) || (phase === 'recording' && elapsed < 15)}
             >
               {phase === 'idle' ? (
                 <View style={styles.recordCore} />
               ) : (
-                <View style={styles.stopCore} />
+                <View style={[styles.stopCore, elapsed >= 15 && styles.stopCoreReady]} />
               )}
             </Pressable>
-            <Text style={styles.btnHint}>
-              {phase === 'idle' ? 'Tap to start recording' : 'Tap to stop recording'}
-            </Text>
+              <Text style={styles.btnHint}>
+                {phase === 'idle'
+                  ? 'Tap to start recording'
+                  : elapsed < 15
+                  ? `Keep recording ${15 - elapsed}s to unlock stop`
+                  : 'Tap to stop recording'}
+              </Text>
           </View>
         </View>
       )}
@@ -500,9 +506,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  stopLocked: {
+    backgroundColor: 'rgba(100,100,100,0.3)',
+    borderColor: 'rgba(100,100,100,0.4)',
+    opacity: 0.5,
+  },
+  stopReady: {
+    backgroundColor: RED,
+    borderColor: RED,
+    opacity: 1,
+  },
   dimmed: { opacity: 0.4 },
   recordCore: { width: 64, height: 64, borderRadius: 32, backgroundColor: RED },
   stopCore: { width: 28, height: 28, borderRadius: 4, backgroundColor: RED },
+  stopCoreReady: { backgroundColor: '#fff' },
   btnHint: {
     fontFamily: fontFamily.body,
     fontSize: 12,

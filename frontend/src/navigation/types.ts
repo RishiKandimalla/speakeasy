@@ -7,7 +7,7 @@ export type HomeStackParamList = {
   RecordVideo: undefined;
   UploadedVideoReview: { videoUri: string };
   AnalysisLoading: { jobId: string };
-  AnalysisResults: { result: AnalysisResult };
+  AnalysisResults: { result: AnalysisResult; fromAnalysis?: boolean };
   AnalysisSummary: { result: AnalysisResult };
   ShareResults: { result: AnalysisResult };
   Notifications: undefined;
