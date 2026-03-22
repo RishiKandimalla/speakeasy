@@ -3,6 +3,11 @@ from typing import Any
 from app.db.client import get_client
 
 
+def _is_missing_jobs_is_public_error(exc: Exception) -> bool:
+    msg = str(exc)
+    return "PGRST204" in msg and "is_public" in msg and "jobs" in msg
+
+
 def create_job(user_id: str, upload_id: str, options: dict, context: dict | None) -> dict:
     db = get_client()
     result = (
@@ -76,15 +81,33 @@ def mark_job_completed(job_id: str) -> None:
 
 def list_jobs(user_id: str, limit: int = 20, offset: int = 0) -> list[dict]:
     db = get_client()
-    result = (
-        db.table("jobs")
-        .select("id, status, stage, progress, created_at, upload_id, is_public")
-        .eq("user_id", user_id)
-        .order("created_at", desc=True)
-        .range(offset, offset + limit - 1)
-        .execute()
-    )
-    return result.data or []
+    try:
+        result = (
+            db.table("jobs")
+            .select("id, status, stage, progress, created_at, upload_id, is_public")
+            .eq("user_id", user_id)
+            .order("created_at", desc=True)
+            .range(offset, offset + limit - 1)
+            .execute()
+        )
+        return result.data or []
+    except Exception as exc:
+        # Backward compatibility for deployments where the migration adding
+        # jobs.is_public has not been applied yet.
+        if not _is_missing_jobs_is_public_error(exc):
+            raise
+        legacy = (
+            db.table("jobs")
+            .select("id, status, stage, progress, created_at, upload_id")
+            .eq("user_id", user_id)
+            .order("created_at", desc=True)
+            .range(offset, offset + limit - 1)
+            .execute()
+        )
+        rows = legacy.data or []
+        for row in rows:
+            row["is_public"] = False
+        return rows
 
 
 def find_next_queued_job() -> dict | None:
@@ -362,7 +385,12 @@ def record_post_view(user_id: str, post_id: str) -> None:
 
 def set_job_public(job_id: str, is_public: bool = True) -> None:
     db = get_client()
-    db.table("jobs").update({"is_public": is_public}).eq("id", job_id).execute()
+    try:
+        db.table("jobs").update({"is_public": is_public}).eq("id", job_id).execute()
+    except Exception as exc:
+        # No-op for environments that have not yet migrated jobs.is_public.
+        if not _is_missing_jobs_is_public_error(exc):
+            raise
 
 
 def get_viewed_post_ids(user_id: str) -> list[str]:
