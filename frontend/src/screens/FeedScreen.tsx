@@ -1,55 +1,40 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  ListRenderItemInfo,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  ViewToken,
-  useWindowDimensions,
-} from 'react-native';
+import { ActivityIndicator, FlatList, ListRenderItemInfo, StyleSheet, Text, View, ViewToken, useWindowDimensions } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useVideoPlayer, VideoView } from 'expo-video';
 
 import { getCachedClipUri, prefetchClip } from '../lib/clipCache';
-import { ClipCategory, ClipResponse, listClips } from '../lib/api';
+import { ClipResponse, FeedPostResponse, listClips, listPublicFeed } from '../lib/api';
 import { colors, radius, spacing, typography } from '../theme';
 
-type FeedClip = ClipResponse & { instanceKey: string };
+type FeedItem = FeedPostResponse & {
+  backgroundClip: ClipResponse | null;
+  instanceKey: string;
+};
 
-const CATEGORY_OPTIONS: ReadonlyArray<{ label: string; value: ClipCategory }> = [
-  { label: 'Minecraft', value: 'minecraft' },
-  { label: 'Drone', value: 'drone' },
-  { label: 'Both', value: 'both' },
-];
+const BATCH_SIZE = 20;
 
-function shuffleClips(clips: ClipResponse[], previousLastClipId?: string): ClipResponse[] {
-  const shuffled = [...clips];
+function shuffleItems<T>(items: T[]): T[] {
+  const shuffled = [...items];
   for (let i = shuffled.length - 1; i > 0; i -= 1) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
-  if (previousLastClipId && shuffled.length > 1 && shuffled[0].id === previousLastClipId) {
-    [shuffled[0], shuffled[1]] = [shuffled[1], shuffled[0]];
-  }
   return shuffled;
 }
 
-function FeedVideoItem({
+function FeedBackgroundVideo({
   clip,
   shouldPlay,
-  height,
 }: {
-  clip: FeedClip;
+  clip: ClipResponse;
   shouldPlay: boolean;
-  height: number;
 }) {
   const [sourceUri, setSourceUri] = useState(clip.video_url);
   const player = useVideoPlayer(sourceUri, (p) => {
     p.loop = true;
+    p.volume = 0;
   });
 
   useEffect(() => {
@@ -77,11 +62,35 @@ function FeedVideoItem({
     }
   }, [player, shouldPlay]);
 
+  return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" />;
+}
+
+function FeedVideoItem({
+  item,
+  shouldPlay,
+  height,
+}: {
+  item: FeedItem;
+  shouldPlay: boolean;
+  height: number;
+}) {
+  const audioPlayer = useVideoPlayer(item.audio_url, (p) => {
+    p.loop = true;
+  });
+
+  useEffect(() => {
+    if (shouldPlay) {
+      audioPlayer.play();
+    } else {
+      audioPlayer.pause();
+    }
+  }, [audioPlayer, shouldPlay]);
+
   return (
     <View style={[styles.page, { height }]}>
-      <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" />
+      {item.backgroundClip ? <FeedBackgroundVideo clip={item.backgroundClip} shouldPlay={shouldPlay} /> : null}
       <View style={styles.videoOverlay}>
-        <Text style={styles.chipText}>{clip.category === 'minecraft' ? 'Minecraft clip' : 'Drone clip'}</Text>
+        <Text style={styles.chipText}>@{item.username}</Text>
       </View>
     </View>
   );
@@ -92,9 +101,9 @@ export function FeedScreen() {
   const { height: windowHeight } = useWindowDimensions();
   const pageHeight = useMemo(() => Math.max(windowHeight - insets.bottom, 1), [windowHeight, insets.bottom]);
 
-  const [category, setCategory] = useState<ClipCategory>('both');
+  const [sourcePosts, setSourcePosts] = useState<FeedPostResponse[]>([]);
   const [sourceClips, setSourceClips] = useState<ClipResponse[]>([]);
-  const [feed, setFeed] = useState<FeedClip[]>([]);
+  const [feed, setFeed] = useState<FeedItem[]>([]);
   const [visibleIndex, setVisibleIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -103,67 +112,74 @@ export function FeedScreen() {
   const loadingMoreRef = useRef(false);
   const viewabilityConfigRef = useRef({ itemVisiblePercentThreshold: 70 });
 
-  const createBatch = useCallback((clips: ClipResponse[], previousLastClipId?: string): FeedClip[] => {
-    const shuffled = shuffleClips(clips, previousLastClipId);
-    return shuffled.map((clip) => {
-      instanceCounterRef.current += 1;
-      return { ...clip, instanceKey: `${clip.id}:${instanceCounterRef.current}` };
-    });
-  }, []);
+  const createBatch = useCallback(
+    (posts: FeedPostResponse[], clips: ClipResponse[], previousLastPostId?: string): FeedItem[] => {
+      const shuffledPosts = shuffleItems(posts);
+      if (previousLastPostId && shuffledPosts.length > 1 && shuffledPosts[0].post_id === previousLastPostId) {
+        [shuffledPosts[0], shuffledPosts[1]] = [shuffledPosts[1], shuffledPosts[0]];
+      }
+      const shuffledClips = clips.length ? shuffleItems(clips) : [];
+      return shuffledPosts.map((post, index) => {
+        const backgroundClip = shuffledClips.length ? shuffledClips[index % shuffledClips.length] : null;
+        instanceCounterRef.current += 1;
+        return { ...post, backgroundClip, instanceKey: `${post.post_id}:${instanceCounterRef.current}` };
+      });
+    },
+    [],
+  );
 
-  const loadInitial = useCallback(
-    async (selectedCategory: ClipCategory) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const clips = await listClips(selectedCategory);
-        setSourceClips(clips);
-        instanceCounterRef.current = 0;
-        if (!clips.length) {
-          setFeed([]);
-          setVisibleIndex(0);
-          return;
-        }
-        const firstBatch = createBatch(clips);
-        const secondBatch = createBatch(clips, firstBatch[firstBatch.length - 1]?.id);
-        setFeed([...firstBatch, ...secondBatch]);
-        setVisibleIndex(0);
-      } catch (e) {
-        setError(String(e));
-        setSourceClips([]);
+  const loadInitial = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [posts, clips] = await Promise.all([listPublicFeed(BATCH_SIZE), listClips('both')]);
+      setSourcePosts(posts);
+      setSourceClips(clips);
+      instanceCounterRef.current = 0;
+      if (!posts.length) {
         setFeed([]);
         setVisibleIndex(0);
-      } finally {
-        setLoading(false);
+        return;
       }
-    },
-    [createBatch],
-  );
+      const firstBatch = createBatch(posts, clips);
+      const secondBatch = createBatch(posts, clips, firstBatch[firstBatch.length - 1]?.post_id);
+      setFeed([...firstBatch, ...secondBatch]);
+      setVisibleIndex(0);
+    } catch (e) {
+      setError(String(e));
+      setSourcePosts([]);
+      setSourceClips([]);
+      setFeed([]);
+      setVisibleIndex(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [createBatch]);
 
   useFocusEffect(
     useCallback(() => {
-      void loadInitial(category);
-    }, [category, loadInitial]),
+      void loadInitial();
+    }, [loadInitial]),
   );
 
   useEffect(() => {
     if (!feed.length) return;
     const next = feed[visibleIndex + 1];
     const afterNext = feed[visibleIndex + 2];
-    if (next) void prefetchClip(next.id, next.video_url);
-    if (afterNext) void prefetchClip(afterNext.id, afterNext.video_url);
+    if (next?.backgroundClip) void prefetchClip(next.backgroundClip.id, next.backgroundClip.video_url);
+    if (afterNext?.backgroundClip) void prefetchClip(afterNext.backgroundClip.id, afterNext.backgroundClip.video_url);
   }, [feed, visibleIndex]);
 
   const appendBatch = useCallback(() => {
-    if (loadingMoreRef.current || !sourceClips.length) return;
+    if (loadingMoreRef.current || !sourcePosts.length) return;
     loadingMoreRef.current = true;
     setFeed((prev) => {
-      const previousLastClipId = prev[prev.length - 1]?.id;
-      const batch = createBatch(sourceClips, previousLastClipId);
+      const previousLastPostId = prev[prev.length - 1]?.post_id;
+      const batch = createBatch(sourcePosts, sourceClips, previousLastPostId);
       return [...prev, ...batch];
     });
     loadingMoreRef.current = false;
-  }, [createBatch, sourceClips]);
+  }, [createBatch, sourceClips, sourcePosts]);
 
   const onViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -175,33 +191,18 @@ export function FeedScreen() {
   );
 
   const renderItem = useCallback(
-    ({ item, index }: ListRenderItemInfo<FeedClip>) => (
-      <FeedVideoItem clip={item} shouldPlay={index === visibleIndex} height={pageHeight} />
+    ({ item, index }: ListRenderItemInfo<FeedItem>) => (
+      <FeedVideoItem item={item} shouldPlay={index === visibleIndex} height={pageHeight} />
     ),
     [pageHeight, visibleIndex],
   );
 
   return (
     <View style={styles.root}>
-      <View style={[styles.toggleRow, { top: insets.top + spacing.md }]}>
-        {CATEGORY_OPTIONS.map((option) => {
-          const active = category === option.value;
-          return (
-            <Pressable
-              key={option.value}
-              style={[styles.toggleBtn, active && styles.toggleBtnActive]}
-              onPress={() => setCategory(option.value)}
-            >
-              <Text style={[styles.toggleText, active && styles.toggleTextActive]}>{option.label}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.centerText}>Loading clips…</Text>
+          <Text style={styles.centerText}>Loading feed posts...</Text>
         </View>
       ) : error ? (
         <View style={styles.center}>
@@ -210,7 +211,7 @@ export function FeedScreen() {
         </View>
       ) : !feed.length ? (
         <View style={styles.center}>
-          <Text style={styles.centerText}>No clips available for this category yet.</Text>
+          <Text style={styles.centerText}>No public posts are available yet.</Text>
         </View>
       ) : (
         <FlatList
@@ -265,34 +266,6 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.text,
     fontWeight: '600',
-  },
-  toggleRow: {
-    position: 'absolute',
-    alignSelf: 'center',
-    zIndex: 2,
-    flexDirection: 'row',
-    backgroundColor: colors.overlay,
-    borderRadius: radius.lg,
-    padding: spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.border,
-    gap: spacing.xs,
-  },
-  toggleBtn: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.md,
-  },
-  toggleBtnActive: {
-    backgroundColor: colors.primary,
-  },
-  toggleText: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    fontWeight: '600',
-  },
-  toggleTextActive: {
-    color: colors.background,
   },
   center: {
     flex: 1,

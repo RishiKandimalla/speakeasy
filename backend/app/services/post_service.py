@@ -75,6 +75,11 @@ def get_discovery_feed(user_id: str, limit: int = 10) -> list[FeedPostResponse]:
     return _posts_to_response(posts)
 
 
+def get_public_feed(limit: int = 20) -> list[FeedPostResponse]:
+    posts = queries.get_random_public_posts(limit=limit)
+    return _posts_to_response(posts)
+
+
 def get_user_posts(user_id: str, limit: int = 20, offset: int = 0) -> list[FeedPostResponse]:
     posts = queries.list_user_posts(user_id=user_id, limit=limit, offset=offset)
     return _posts_to_response(posts)

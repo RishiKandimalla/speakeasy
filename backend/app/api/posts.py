@@ -27,6 +27,13 @@ def get_discovery_feed(
     return post_service.get_discovery_feed(user_id=user_id, limit=limit)
 
 
+@router.get("/feed/public", response_model=list[FeedPostResponse])
+def get_public_feed(
+    limit: int = Query(default=20, ge=1, le=100),
+):
+    return post_service.get_public_feed(limit=limit)
+
+
 @router.post("/posts/{post_id}/view", status_code=204)
 def mark_viewed(post_id: str, user_id: str = Depends(get_current_user_id)):
     post_service.mark_viewed(user_id=user_id, post_id=post_id)

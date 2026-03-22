@@ -381,6 +381,48 @@ def get_random_recent_posts(limit: int = 10, exclude_user_id: str | None = None,
     return rows[:limit]
 
 
+def get_random_public_posts(limit: int = 20, exclude_user_id: str | None = None, exclude_post_ids: list[str] | None = None) -> list[dict]:
+    """Returns random public posts across all time.
+
+    Public visibility is determined by jobs.is_public when available.
+    """
+    import random
+
+    db = get_client()
+    query = db.table("posts").select("*")
+    if exclude_user_id:
+        query = query.neq("user_id", exclude_user_id)
+    if exclude_post_ids:
+        query = query.not_.in_("id", exclude_post_ids)
+
+    # Pull a larger recent slice, then shuffle for randomness.
+    result = query.order("created_at", desc=True).limit(limit * 10).execute()
+    rows = result.data or []
+    if not rows:
+        return []
+
+    # Filter to posts with jobs marked public when that column exists.
+    job_ids = [row["job_id"] for row in rows if row.get("job_id")]
+    if job_ids:
+        try:
+            jobs_result = (
+                db.table("jobs")
+                .select("id, is_public")
+                .in_("id", job_ids)
+                .execute()
+            )
+            public_job_ids = {job["id"] for job in (jobs_result.data or []) if job.get("is_public") is True}
+            rows = [row for row in rows if row.get("job_id") in public_job_ids]
+        except Exception as exc:
+            # Backward compatibility for deployments where jobs.is_public
+            # has not been applied yet.
+            if not _is_missing_jobs_is_public_error(exc):
+                raise
+
+    random.shuffle(rows)
+    return rows[:limit]
+
+
 def record_post_view(user_id: str, post_id: str) -> None:
     db = get_client()
     db.table("post_views").upsert({"user_id": user_id, "post_id": post_id}).execute()

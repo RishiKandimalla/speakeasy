@@ -213,6 +213,12 @@ export async function listUserPosts(userId: string, limit = 20): Promise<FeedPos
   return parseJsonOrThrow(res) as Promise<FeedPostResponse[]>;
 }
 
+export async function listPublicFeed(limit = 20): Promise<FeedPostResponse[]> {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/v1/feed/public?limit=${limit}`, { headers });
+  return parseJsonOrThrow(res) as Promise<FeedPostResponse[]>;
+}
+
 export async function listClips(category: ClipCategory = 'both'): Promise<ClipResponse[]> {
   const params = new URLSearchParams({ category });
   const res = await fetch(`${API_BASE}/v1/clips?${params.toString()}`, {
