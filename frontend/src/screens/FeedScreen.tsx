@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { setStatusBarStyle } from 'expo-status-bar';
 import { useVideoPlayer, VideoView } from 'expo-video';
 
 import { getCachedClipUri, prefetchClip } from '../lib/clipCache';
@@ -524,6 +525,13 @@ export function FeedScreen() {
     useCallback(() => {
       void loadInitial();
     }, [loadInitial]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      setStatusBarStyle('light');
+      return () => setStatusBarStyle('dark');
+    }, []),
   );
 
   useEffect(() => {

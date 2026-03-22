@@ -52,7 +52,14 @@
           "cameraPermission": "Allow Speakeasy to record video"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "sounds": [],
+          "color": "#30410D"
+        }
+      ]
     ]
   }
 }

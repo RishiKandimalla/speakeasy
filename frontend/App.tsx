@@ -17,6 +17,7 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from './src/context/AuthContext';
+import { setupForegroundHandler } from './src/lib/notifications';
 import type { AuthStackParamList, HomeStackParamList, RootTabParamList } from './src/navigation/types';
 import { AnalysisLoadingScreen } from './src/screens/AnalysisLoadingScreen';
 import { AnalysisResultsScreen } from './src/screens/AnalysisResultsScreen';
@@ -32,7 +33,7 @@ import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { RecordVideoScreen } from './src/screens/RecordVideoScreen';
 import { UploadedVideoReviewScreen } from './src/screens/UploadedVideoReviewScreen';
-import { authColors, colors } from './src/theme';
+import { authColors, fontFamily } from './src/theme';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
@@ -40,24 +41,32 @@ const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 
 const navigationTheme: Theme = {
   ...DefaultTheme,
-  dark: true,
+  dark: false,
   colors: {
     ...DefaultTheme.colors,
-    primary: colors.primary,
-    background: colors.background,
-    card: colors.surface,
-    text: colors.text,
-    border: colors.border,
-    notification: colors.primary,
+    primary: authColors.cta,
+    background: authColors.background,
+    card: authColors.background,
+    text: authColors.text,
+    border: authColors.border,
+    notification: authColors.cta,
   },
 };
 
 const stackScreenOptions = {
-  headerStyle: { backgroundColor: colors.surface },
-  headerTintColor: colors.text,
-  headerTitleStyle: { color: colors.text, fontWeight: '600' as const, fontSize: 17 },
+  headerStyle: {
+    backgroundColor: authColors.background,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: authColors.border,
+  },
+  headerTintColor: authColors.text,
+  headerTitleStyle: {
+    color: authColors.text,
+    fontFamily: fontFamily.bodySemiBold,
+    fontSize: 17,
+  },
   headerShadowVisible: false,
-  contentStyle: { backgroundColor: colors.background },
+  contentStyle: { backgroundColor: authColors.background },
 };
 
 function PlusActionScreen() {
@@ -113,8 +122,8 @@ function RootNavigator() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: authColors.background }}>
+        <ActivityIndicator size="large" color={authColors.cta} />
       </View>
     );
   }
@@ -215,6 +224,8 @@ function RootNavigator() {
   );
 }
 
+setupForegroundHandler();
+
 export default function App() {
   const [fontsLoaded] = useFonts({
     ...Ionicons.font,
@@ -228,8 +239,8 @@ export default function App() {
   if (!fontsLoaded) {
     return (
       <SafeAreaProvider>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
-          <ActivityIndicator size="large" color={colors.primary} />
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: authColors.background }}>
+          <ActivityIndicator size="large" color={authColors.cta} />
         </View>
       </SafeAreaProvider>
     );
@@ -242,7 +253,7 @@ export default function App() {
           <RootNavigator />
         </NavigationContainer>
       </AuthProvider>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
     </SafeAreaProvider>
   );
 }
