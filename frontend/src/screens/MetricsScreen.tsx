@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { SlideOutMenu } from '../components/SlideOutMenu';
 import { authColors, fontFamily, radius, spacing } from '../theme';
 
 const CALENDAR_DAYS = [
@@ -16,26 +18,33 @@ const CALENDAR_ROWS = [0, 1, 2, 3, 4].map((row) => CALENDAR_DAYS.slice(row * 7, 
 
 export function MetricsScreen() {
   const insets = useSafeAreaInsets();
+  const [menuVisible, setMenuVisible] = useState(false);
 
   return (
-    <ScrollView
-      style={styles.root}
-      contentContainerStyle={{
-        paddingTop: insets.top + spacing.md,
-        paddingBottom: insets.bottom + spacing.xxl,
-      }}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.header}>
-        <Image source={require('../../assets/images/speakeasy_name.png')} style={styles.wordmark} resizeMode="contain" />
-        <View style={styles.headerIcons}>
-          <Ionicons name="notifications-outline" size={22} color="#1F2A16" />
-          <Ionicons name="menu-outline" size={24} color="#1F2A16" />
+    <>
+      <ScrollView
+        style={styles.root}
+        contentContainerStyle={{
+          paddingTop: insets.top + spacing.md,
+          paddingBottom: insets.bottom + spacing.xxl,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <Image source={require('../../assets/images/speakeasy_name.png')} style={styles.wordmark} resizeMode="contain" />
+          <View style={styles.headerIcons}>
+            <Pressable hitSlop={8}>
+              <Ionicons name="notifications-outline" size={22} color="#1F2A16" />
+            </Pressable>
+            <Pressable hitSlop={8} onPress={() => setMenuVisible(true)}>
+              <Ionicons name="menu-outline" size={24} color="#1F2A16" />
+            </Pressable>
+          </View>
         </View>
-      </View>
+      
 
-      <Text style={styles.sectionTitle}>MOST RECENT</Text>
-      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>MOST RECENT</Text>
+        <View style={styles.card}>
         <View style={styles.videoStub}>
           <Ionicons name="play" size={34} color="#FFFFFF" />
           <View style={styles.durationPill}>
@@ -58,10 +67,10 @@ export function MetricsScreen() {
             <Text style={styles.tagText}>145 wpm</Text>
           </View>
         </View>
-      </View>
+        </View>
 
-      <Text style={styles.sectionTitle}>VIDEO TRACKER</Text>
-      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>VIDEO TRACKER</Text>
+        <View style={styles.card}>
         <View style={styles.monthHeader}>
           <Text style={styles.monthNav}>← Prev</Text>
           <Text style={styles.monthText}>March 2026</Text>
@@ -92,10 +101,10 @@ export function MetricsScreen() {
             </View>
           ))}
         </View>
-      </View>
+        </View>
 
-      <Text style={styles.sectionTitle}>THIS MONTH</Text>
-      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>THIS MONTH</Text>
+        <View style={styles.card}>
         <View style={styles.monthStats}>
           <View style={styles.statMini}>
             <Text style={styles.statNum}>14</Text>
@@ -133,8 +142,10 @@ export function MetricsScreen() {
           </View>
           <Text style={styles.metricValue}>145 wpm</Text>
         </View>
-      </View>
-    </ScrollView>
+        </View>
+      </ScrollView>
+      <SlideOutMenu visible={menuVisible} onClose={() => setMenuVisible(false)} />
+    </>
   );
 }
 

@@ -1,12 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo } from 'react';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { SlideOutMenu } from '../components/SlideOutMenu';
 import { authColors, fontFamily, radius, spacing } from '../theme';
 
 export function HomeDashboardScreen() {
   const insets = useSafeAreaInsets();
+  const [menuVisible, setMenuVisible] = useState(false);
   const progressLinePoints = useMemo(
     () => [
       { left: 16, top: 66 },
@@ -19,24 +21,30 @@ export function HomeDashboardScreen() {
   );
 
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={[
-        styles.root,
-        { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.xxl },
-      ]}
-      keyboardShouldPersistTaps="handled"
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.header}>
-        <Image source={require('../../assets/images/speakeasy_name.png')} style={styles.wordmark} resizeMode="contain" />
-        <View style={styles.headerRight}>
-          <Ionicons name="notifications-outline" size={22} color="#1F2A16" />
-          <Ionicons name="menu-outline" size={24} color="#1F2A16" />
+    <>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.root,
+          { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + spacing.xxl },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <Image source={require('../../assets/images/speakeasy_name.png')} style={styles.wordmark} resizeMode="contain" />
+          <View style={styles.headerRight}>
+            <Pressable hitSlop={8}>
+              <Ionicons name="notifications-outline" size={22} color="#1F2A16" />
+            </Pressable>
+            <Pressable hitSlop={8} onPress={() => setMenuVisible(true)}>
+              <Ionicons name="menu-outline" size={24} color="#1F2A16" />
+            </Pressable>
+          </View>
         </View>
-      </View>
+      
 
-      <View style={styles.card}>
+        <View style={styles.card}>
         <View style={styles.streakHeader}>
           <Text style={styles.streakLabel}>CURRENT STREAK</Text>
           <View style={styles.streakIconWrap}>
@@ -56,9 +64,9 @@ export function HomeDashboardScreen() {
             </View>
           </View>
         </View>
-      </View>
+        </View>
 
-      <View style={styles.card}>
+        <View style={styles.card}>
         <Text style={styles.sectionHeading}>Daily video</Text>
         <Text style={styles.sectionSubheading}>Great work keeping your streak going!</Text>
         <View style={styles.dailyDoneRow}>
@@ -70,9 +78,9 @@ export function HomeDashboardScreen() {
           </View>
           <Text style={styles.reviewLink}>Review videos</Text>
         </View>
-      </View>
+        </View>
 
-      <View style={styles.card}>
+        <View style={styles.card}>
         <View style={styles.rowBetween}>
           <Text style={styles.sectionHeading}>Your progress</Text>
           <Text style={styles.sectionHint}>This week</Text>
@@ -91,9 +99,9 @@ export function HomeDashboardScreen() {
             </Text>
           ))}
         </View>
-      </View>
+        </View>
 
-      <View style={styles.card}>
+        <View style={styles.card}>
         <View style={styles.rowBetween}>
           <Text style={styles.sectionHeading}>Recording analytics</Text>
           <Text style={styles.sectionHint}>All time</Text>
@@ -120,8 +128,10 @@ export function HomeDashboardScreen() {
             <Text style={styles.analyticsSub}>wpm avg</Text>
           </View>
         </View>
-      </View>
-    </ScrollView>
+        </View>
+      </ScrollView>
+      <SlideOutMenu visible={menuVisible} onClose={() => setMenuVisible(false)} />
+    </>
   );
 }
 

@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { SlideOutMenu } from '../components/SlideOutMenu';
 import { authColors, fontFamily, radius, spacing } from '../theme';
 
 const GRID_ITEMS = [
@@ -15,25 +17,32 @@ const GRID_ITEMS = [
 
 export function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const [menuVisible, setMenuVisible] = useState(false);
 
   return (
-    <ScrollView
-      style={styles.root}
-      contentContainerStyle={{
-        paddingTop: insets.top + spacing.md,
-        paddingBottom: insets.bottom + spacing.xxl,
-      }}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.header}>
-        <Image source={require('../../assets/images/speakeasy_name.png')} style={styles.wordmark} resizeMode="contain" />
-        <View style={styles.headerIcons}>
-          <Ionicons name="notifications-outline" size={22} color="#1F2A16" />
-          <Ionicons name="menu-outline" size={24} color="#1F2A16" />
+    <>
+      <ScrollView
+        style={styles.root}
+        contentContainerStyle={{
+          paddingTop: insets.top + spacing.md,
+          paddingBottom: insets.bottom + spacing.xxl,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <Image source={require('../../assets/images/speakeasy_name.png')} style={styles.wordmark} resizeMode="contain" />
+          <View style={styles.headerIcons}>
+            <Pressable hitSlop={8}>
+              <Ionicons name="notifications-outline" size={22} color="#1F2A16" />
+            </Pressable>
+            <Pressable hitSlop={8} onPress={() => setMenuVisible(true)}>
+              <Ionicons name="menu-outline" size={24} color="#1F2A16" />
+            </Pressable>
+          </View>
         </View>
-      </View>
+      
 
-      <View style={styles.profileTop}>
+        <View style={styles.profileTop}>
         <View style={styles.avatar} />
         <View style={styles.profileStat}>
           <Text style={styles.profileNum}>6</Text>
@@ -47,13 +56,13 @@ export function ProfileScreen() {
           <Text style={styles.profileNum}>89</Text>
           <Text style={styles.profileLabel}>Following</Text>
         </View>
-      </View>
+        </View>
 
-      <Text style={styles.name}>Joh</Text>
-      <Text style={styles.bio}>Public speaking enthusiast</Text>
-      <Text style={styles.bio}>Building confidence one video at a time</Text>
+        <Text style={styles.name}>Joh</Text>
+        <Text style={styles.bio}>Public speaking enthusiast</Text>
+        <Text style={styles.bio}>Building confidence one video at a time</Text>
 
-      <View style={styles.actionRow}>
+        <View style={styles.actionRow}>
         <View style={styles.outlineBtnLarge}>
           <Text style={styles.outlineBtnText}>Edit profile</Text>
         </View>
@@ -61,9 +70,9 @@ export function ProfileScreen() {
           <Ionicons name="share-social-outline" size={16} color="#1F2A16" />
           <Text style={styles.outlineBtnText}>Share</Text>
         </View>
-      </View>
+        </View>
 
-      <View style={styles.tabHeader}>
+        <View style={styles.tabHeader}>
         <View style={styles.tabItemActive}>
           <Ionicons name="grid-outline" size={16} color="#1F2A16" />
           <Text style={styles.tabItemTextActive}>My posts</Text>
@@ -72,9 +81,9 @@ export function ProfileScreen() {
           <Ionicons name="heart-outline" size={16} color="#9FA4B2" />
           <Text style={styles.tabItemText}>Reacted to</Text>
         </View>
-      </View>
+        </View>
 
-      <View style={styles.grid}>
+        <View style={styles.grid}>
         {GRID_ITEMS.map((item, index) => (
           <View key={`${item.duration}-${index}`} style={styles.gridTile}>
             <View style={styles.durationPill}>
@@ -86,8 +95,10 @@ export function ProfileScreen() {
             </View>
           </View>
         ))}
-      </View>
-    </ScrollView>
+        </View>
+      </ScrollView>
+      <SlideOutMenu visible={menuVisible} onClose={() => setMenuVisible(false)} />
+    </>
   );
 }
 
