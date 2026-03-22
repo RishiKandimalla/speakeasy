@@ -8,6 +8,10 @@ import {
   PlayfairDisplay_400Regular,
   PlayfairDisplay_600SemiBold,
 } from '@expo-google-fonts/playfair-display';
+import {
+  Corben_400Regular,
+  Corben_700Bold,
+} from '@expo-google-fonts/corben';
 import { useFonts } from 'expo-font';
 import { NavigationContainer, DefaultTheme, type Theme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -33,6 +37,7 @@ import { ProfileScreen } from './src/screens/ProfileScreen';
 import { RecordVideoScreen } from './src/screens/RecordVideoScreen';
 import { UploadedVideoReviewScreen } from './src/screens/UploadedVideoReviewScreen';
 import { authColors, colors } from './src/theme';
+
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
@@ -218,11 +223,13 @@ function RootNavigator() {
 export default function App() {
   const [fontsLoaded] = useFonts({
     ...Ionicons.font,
+    PlayfairDisplay_400Regular,
+    PlayfairDisplay_600SemiBold,
+    Corben_400Regular,
+    Corben_700Bold,
     Jost_400Regular,
     Jost_500Medium,
     Jost_600SemiBold,
-    PlayfairDisplay_400Regular,
-    PlayfairDisplay_600SemiBold,
   });
 
   if (!fontsLoaded) {
