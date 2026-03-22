@@ -10,42 +10,53 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { HomeStackScreenProps } from '../navigation/types';
 import type { AnalysisResult } from '../types/analysis';
-import { fontFamily } from '../theme';
+import { spacing } from '../theme';
 
-// ── Figma design tokens ──────────────────────────────────────────────────────
+// ── Figma design tokens ───────────────────────────────────────────────────────
 
 const R = {
-  bg: '#fffae0',
-  heroBg: '#d0e9ab',
+  bg: '#FFFAE0',
+  // Hero card — Figma: #B9CCA3 fill, rgba(38,49,3,0.65) border
+  heroBg: '#B9CCA3',
   heroBorder: 'rgba(38,49,3,0.65)',
-  heroScore: '#388223',
-  badgeBg: 'rgba(255,255,255,0.2)',
-  badgeBorder: 'rgba(255,255,255,0.3)',
-  badgeDot: '#8bc87a',
-  badgeText: '#5fc144',
-  cardBg: 'rgba(255,255,255,0.9)',
+  // Hero score — Figma: Corben 72px #5A6B40
+  heroScore: '#5A6B40',
+  // Badge — Figma: rgba(255,255,255,0.20) fill, rgba(255,255,255,0.30) border
+  badgeBg: 'rgba(255,255,255,0.20)',
+  badgeBorder: 'rgba(255,255,255,0.30)',
+  badgeDot: '#5A6B40',
+  badgeText: '#5A6B40',
+  // Tabbed card — Figma: rgba(255,255,255,0.90) fill
+  cardBg: 'rgba(255,255,255,0.90)',
   cardBorder: 'rgba(38,49,3,0.12)',
-  innerBg: 'rgba(255,250,224,0.5)',
+  // Section cards inside tab — Figma: rgba(255,250,224,0.50) fill
+  innerBg: 'rgba(255,250,224,0.50)',
   innerBorder: 'rgba(38,49,3,0.08)',
-  miniCardBg: 'rgba(255,255,255,0.6)',
-  scoreBoxBg: 'rgba(255,255,255,0.4)',
+  // Mini stat cards — Figma: rgba(255,255,255,0.60)
+  miniCardBg: 'rgba(255,255,255,0.60)',
+  // Sub-score boxes on hero — Figma: rgba(255,255,255,0.40)
+  scoreBoxBg: 'rgba(255,255,255,0.40)',
   text: '#263103',
-  textMuted: '#8a8070',
-  accent: '#5a6b40',
-  accentGreen: '#86cc1b',
-  amber: '#854f0b',
-  amberBg: 'rgba(254,249,195,0.6)',
-  amberBorder: 'rgba(133,79,11,0.1)',
-  progressBg: 'rgba(38,49,3,0.1)',
+  textMuted: '#8A8070',
+  // Accent — Figma: #5A6B40 olive green
+  accent: '#5A6B40',
+  // Filler amber — Figma: #AB902B
+  amber: '#AB902B',
+  amberBg: 'rgba(254,249,195,0.60)',
+  amberBorder: 'rgba(133,79,11,0.10)',
+  // Progress track
+  progressBg: 'rgba(38,49,3,0.10)',
+  // Tab colours
   tabActive: '#263103',
-  tabInactive: '#8a8070',
-  tabIndicator: '#5a6b40',
-  btnBg: '#4a5240',
-  toneBar1: '#d4537e',
-  toneBar2: '#ed93b1',
-  grammarBg: 'rgba(254,243,242,0.6)',
-  grammarBorder: 'rgba(255,201,201,0.3)',
-  grammarError: '#7a1a1a',
+  tabInactive: '#8A8070',
+  tabIndicator: '#5A6B40',
+  // Share button — Figma: #757D5C
+  btnBg: '#757D5C',
+  toneBar1: '#D4537E',
+  toneBar2: '#ED93B1',
+  grammarBg: 'rgba(254,243,242,0.60)',
+  grammarBorder: 'rgba(255,201,201,0.30)',
+  grammarError: '#7A1A1A',
 } as const;
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -72,9 +83,7 @@ function clamp(v: number, lo: number, hi: number) {
 function ProgressBar({ pct, color }: { pct: number; color: string }) {
   return (
     <View style={pb.track}>
-      <View
-        style={[pb.fill, { width: `${clamp(pct, 0, 100)}%` as any, backgroundColor: color }]}
-      />
+      <View style={[pb.fill, { width: `${clamp(pct, 0, 100)}%` as any, backgroundColor: color }]} />
     </View>
   );
 }
@@ -104,24 +113,23 @@ const scard = StyleSheet.create({
   },
 });
 
+// Figma: section headers use Corben 400 14px for title, icon wrap with brand bg
 function SectionHeader({
-  icon,
   title,
   badge,
   iconBg,
+  iconColor,
 }: {
-  icon: string;
   title: string;
   badge?: string;
   iconBg?: string;
+  iconColor?: string;
 }) {
   return (
     <View style={sh.row}>
-      <View style={[sh.iconWrap, { backgroundColor: iconBg ?? '#e8f5e3' }]}>
-        <Text style={sh.iconText}>{icon}</Text>
-      </View>
+      <View style={[sh.iconWrap, { backgroundColor: iconBg ?? '#E8F5E3' }]} />
       <Text style={sh.title}>{title}</Text>
-      {badge != null && <Text style={sh.badge}>{badge}</Text>}
+      {badge != null && <Text style={[sh.badge, iconColor ? { color: iconColor } : {}]}>{badge}</Text>}
     </View>
   );
 }
@@ -132,14 +140,27 @@ const sh = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  iconText: { fontSize: 15 },
-  title: { fontFamily: fontFamily.bodyMedium, fontSize: 14, color: R.text, flex: 1 },
-  badge: { fontFamily: fontFamily.bodyMedium, fontSize: 16, color: R.accent },
+  // Figma: section title is Corben 400 14px #263103
+  title: {
+    fontFamily: 'Corben_400Regular',
+    fontSize: 14,
+    lineHeight: 21,
+    color: R.text,
+    flex: 1,
+    includeFontPadding: false,
+  },
+  // Figma: badge/count uses Corben 400 16px
+  badge: {
+    fontFamily: 'Corben_400Regular',
+    fontSize: 16,
+    lineHeight: 24,
+    color: R.accent,
+    includeFontPadding: false,
+  },
 });
 
+// Figma: mini stat cards — rgba(255,255,255,0.60) bg, Corben 400 24px value
 function MiniCard({
   label,
   value,
@@ -170,23 +191,34 @@ const mc = StyleSheet.create({
     borderWidth: 1.27,
     borderColor: R.innerBorder,
     borderRadius: 14,
-    padding: 12,
+    padding: 13,
   },
+  // Figma: label is Jost 400 10px #8A8070 uppercase letterSpacing 0.25
   label: {
-    fontFamily: fontFamily.body,
+    fontFamily: 'Jost_400Regular',
     fontSize: 10,
     color: R.textMuted,
     letterSpacing: 0.25,
     textTransform: 'uppercase',
+    lineHeight: 15,
     marginBottom: 6,
   },
+  // Figma: value is Corben 400 24px #263103
   value: {
-    fontFamily: fontFamily.display,
+    fontFamily: 'Corben_400Regular',
     fontSize: 24,
+    lineHeight: 36,
     color: R.text,
     marginBottom: 4,
+    includeFontPadding: false,
   },
-  sub: { fontFamily: fontFamily.body, fontSize: 10, color: R.textMuted },
+  // Figma: sub is Jost 400 10px #8A8070
+  sub: {
+    fontFamily: 'Jost_400Regular',
+    fontSize: 10,
+    lineHeight: 15,
+    color: R.textMuted,
+  },
 });
 
 // ── hero card ─────────────────────────────────────────────────────────────────
@@ -204,29 +236,35 @@ function HeroCard({ result }: { result: AnalysisResult }) {
 
   return (
     <View style={hero.card}>
-      <Text style={hero.scoreLabel}>Overall score</Text>
+      {/* Figma: "Clarity Score" label — Corben 400 14px rgba(41,41,41,0.80) */}
+      <Text style={hero.scoreLabel}>Clarity Score</Text>
+      {/* Figma: big score — Corben 400 72px #5A6B40 */}
       <Text style={hero.score}>{overall}</Text>
 
+      {/* Figma: "Excellent" badge — rgba(255,255,255,0.20) pill, rgba(255,255,255,0.30) border */}
       <View style={hero.badge}>
         <View style={hero.badgeDot} />
+        {/* Figma: badge text — Jost 500 14px #5A6B40 */}
         <Text style={hero.badgeText}>{scoreLabel(overall)}</Text>
       </View>
 
-      {/* 3 sub-scores */}
+      {/* Figma: 3 sub-score boxes — rgba(255,255,255,0.40), Jost 500 22px (Delivery), Corben 22px (Clarity/Vocab) */}
       <View style={hero.subRow}>
-        {[
-          { num: delivery, label: 'DELIVERY' },
-          { num: clarity, label: 'CLARITY' },
-          { num: vocab, label: 'VOCAB' },
-        ].map(({ num, label }) => (
-          <View key={label} style={hero.subBox}>
-            <Text style={hero.subNum}>{num}</Text>
-            <Text style={hero.subLabel}>{label}</Text>
-          </View>
-        ))}
+        <View style={hero.subBox}>
+          <Text style={hero.subNumJost}>{delivery}</Text>
+          <Text style={hero.subLabel}>DELIVERY</Text>
+        </View>
+        <View style={hero.subBox}>
+          <Text style={hero.subNumCorben}>{clarity}</Text>
+          <Text style={hero.subLabel}>CLARITY</Text>
+        </View>
+        <View style={hero.subBox}>
+          <Text style={hero.subNumCorben}>{vocab}</Text>
+          <Text style={hero.subLabel}>VOCAB</Text>
+        </View>
       </View>
 
-      {/* Confidence / Energy mini bars */}
+      {/* Figma: confidence/energy mini cards — rgba(255,255,255,0.30), #5A6B40 bar */}
       {(confidence != null || energy != null) && (
         <View style={hero.miniRow}>
           {confidence != null && (
@@ -254,9 +292,10 @@ function HeroCard({ result }: { result: AnalysisResult }) {
 }
 
 const hero = StyleSheet.create({
+  // Figma: #B9CCA3 fill, radius 24, rgba(38,49,3,0.65) border
   card: {
-    marginHorizontal: 24,
-    marginTop: 20,
+    marginHorizontal: 42,
+    marginTop: 32,
     backgroundColor: R.heroBg,
     borderRadius: 24,
     borderWidth: 1.27,
@@ -265,24 +304,25 @@ const hero = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 15,
-    elevation: 8,
   },
+  // Figma: Corben 400 14px rgba(41,41,41,0.80)
   scoreLabel: {
-    fontFamily: fontFamily.body,
+    fontFamily: 'Corben_400Regular',
     fontSize: 14,
-    color: 'rgba(41,41,41,0.8)',
+    lineHeight: 20,
+    color: 'rgba(41,41,41,0.80)',
     marginBottom: 2,
+    includeFontPadding: false,
   },
+  // Figma: Corben 400 72px #5A6B40
   score: {
-    fontFamily: fontFamily.playfairSemiBold,
+    fontFamily: 'Corben_400Regular',
     fontSize: 72,
+    lineHeight: 104,
     color: R.heroScore,
-    lineHeight: 80,
+    includeFontPadding: false,
   },
+  // Figma: pill badge rgba(255,255,255,0.20) fill
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -297,7 +337,13 @@ const hero = StyleSheet.create({
     marginBottom: 20,
   },
   badgeDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: R.badgeDot },
-  badgeText: { fontFamily: fontFamily.bodyMedium, fontSize: 14, color: R.badgeText },
+  // Figma: Jost 500 14px #5A6B40
+  badgeText: {
+    fontFamily: 'Jost_500Medium',
+    fontSize: 14,
+    lineHeight: 20,
+    color: R.badgeText,
+  },
   subRow: { flexDirection: 'row', gap: 10, marginBottom: 16, width: '100%' },
   subBox: {
     flex: 1,
@@ -305,30 +351,53 @@ const hero = StyleSheet.create({
     borderWidth: 1.27,
     borderColor: R.innerBorder,
     borderRadius: 14,
-    paddingVertical: 10,
+    paddingVertical: 13,
+    paddingHorizontal: 13,
     alignItems: 'center',
+    gap: 4,
   },
-  subNum: { fontFamily: fontFamily.display, fontSize: 22, color: R.text, marginBottom: 2 },
+  // Figma: Delivery uses Jost 500 22px
+  subNumJost: {
+    fontFamily: 'Jost_500Medium',
+    fontSize: 22,
+    lineHeight: 33,
+    color: R.text,
+  },
+  // Figma: Clarity/Vocab use Corben 400 22px
+  subNumCorben: {
+    fontFamily: 'Corben_400Regular',
+    fontSize: 22,
+    lineHeight: 33,
+    color: R.text,
+    includeFontPadding: false,
+  },
+  // Figma: Jost 400 9px rgba(38,49,3,0.50) uppercase letterSpacing 0.45
   subLabel: {
-    fontFamily: fontFamily.body,
+    fontFamily: 'Jost_400Regular',
     fontSize: 9,
-    color: 'rgba(38,49,3,0.5)',
+    lineHeight: 13.5,
+    color: 'rgba(38,49,3,0.50)',
     letterSpacing: 0.45,
+    textTransform: 'uppercase',
   },
   miniRow: { flexDirection: 'row', gap: 12, width: '100%' },
+  // Figma: rgba(255,255,255,0.30) fill, radius 10, rgba(38,49,3,0.08) border
   miniCard: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(255,255,255,0.30)',
     borderWidth: 1.27,
     borderColor: R.innerBorder,
     borderRadius: 10,
-    padding: 10,
+    padding: 11,
   },
+  // Figma: Jost 400 9px rgba(38,49,3,0.50) uppercase letterSpacing 0.45
   miniLabel: {
-    fontFamily: fontFamily.body,
+    fontFamily: 'Jost_400Regular',
     fontSize: 9,
-    color: 'rgba(38,49,3,0.5)',
+    lineHeight: 13.5,
+    color: 'rgba(38,49,3,0.50)',
     letterSpacing: 0.45,
+    textTransform: 'uppercase',
     marginBottom: 8,
   },
   miniTrack: {
@@ -338,11 +407,14 @@ const hero = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 6,
   },
-  miniFill: { height: '100%', borderRadius: 3, backgroundColor: R.accentGreen },
+  // Figma: bar fill is #5A6B40
+  miniFill: { height: '100%', borderRadius: 3, backgroundColor: '#5A6B40' },
+  // Figma: Jost 400 10px rgba(38,49,3,0.60) centred
   miniVal: {
-    fontFamily: fontFamily.body,
+    fontFamily: 'Jost_400Regular',
     fontSize: 10,
-    color: 'rgba(38,49,3,0.6)',
+    lineHeight: 15,
+    color: 'rgba(38,49,3,0.60)',
     textAlign: 'center',
   },
 });
@@ -362,26 +434,51 @@ function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void 
       >
         {TABS.map((tab) => (
           <Pressable key={tab} style={tb.btn} onPress={() => onChange(tab)}>
+            {/* Figma: active tab has white bg panel behind it */}
+            {active === tab && <View style={tb.activePanel} />}
+            {/* Figma: Jost 500 13px, active #263103, inactive #8A8070 */}
             <Text style={[tb.label, active === tab && tb.labelActive]}>{tab}</Text>
+            {/* Figma: #5A6B40 pill underline on active */}
             {active === tab && <View style={tb.indicator} />}
           </Pressable>
         ))}
       </ScrollView>
+      {/* Figma: rgba(38,49,3,0.12) bottom divider */}
       <View style={tb.divider} />
     </View>
   );
 }
 
 const tb = StyleSheet.create({
-  inner: { paddingHorizontal: 16, paddingTop: 8 },
+  inner: { paddingHorizontal: 8, paddingTop: 4 },
   btn: {
     paddingHorizontal: 12,
     paddingBottom: 10,
+    paddingTop: 4,
     alignItems: 'center',
     position: 'relative',
+    minWidth: 70,
   },
-  label: { fontFamily: fontFamily.bodyMedium, fontSize: 13, color: R.tabInactive },
+  // Figma: active tab has a white rounded-top background panel
+  activePanel: {
+    position: 'absolute',
+    top: 4,
+    left: 8,
+    right: 8,
+    bottom: 0,
+    backgroundColor: 'white',
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
+  },
+  label: {
+    fontFamily: 'Jost_500Medium',
+    fontSize: 13,
+    lineHeight: 19.5,
+    color: R.tabInactive,
+    zIndex: 1,
+  },
   labelActive: { color: R.tabActive },
+  // Figma: pill underline #5A6B40
   indicator: {
     position: 'absolute',
     bottom: 0,
@@ -390,17 +487,16 @@ const tb = StyleSheet.create({
     height: 2,
     borderRadius: 1,
     backgroundColor: R.tabIndicator,
+    zIndex: 1,
   },
-  divider: { height: 1.27, backgroundColor: R.cardBorder, marginHorizontal: 16 },
+  divider: { height: 1.27, backgroundColor: R.cardBorder },
 });
 
-// ── Speech tab ─────────────────────────────────────────────────────────────────
+// ── Speech tab ────────────────────────────────────────────────────────────────
 
 function SpeechTab({ result }: { result: AnalysisResult }) {
   const m = result.metrics;
-  if (!m) {
-    return <Text style={empty.text}>No speech data available.</Text>;
-  }
+  if (!m) return <Text style={empty.text}>No speech data available.</Text>;
 
   const wpm = Math.round(m.wpm);
   const duration = fmtDuration(m.duration);
@@ -421,16 +517,18 @@ function SpeechTab({ result }: { result: AnalysisResult }) {
 
   return (
     <View>
-      {/* Speaking rate */}
+      {/* Speaking Rate — Figma: #E8F5E3 icon bg */}
       <SectionCard>
-        <SectionHeader icon="🎤" title="Speaking rate" iconBg="#e8f5e3" />
+        <SectionHeader title="Speaking Rate" iconBg="#E8F5E3" />
         <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
           <MiniCard label="Words / min" value={`${wpm}`} />
           <MiniCard label="Total words" value={`${m.word_count}`} sub={`in ${duration}`} />
         </View>
         {accel && (
+          // Figma: pace trend card — rgba(232,245,227,0.60) bg, rgba(90,107,64,0.20) border
           <View style={sp.trendCard}>
             <Text style={sp.trendLabel}>PACE TREND</Text>
+            {/* Figma: trend value — Corben 400 13px #263103 */}
             <Text style={sp.trendVal}>{paceTrend}</Text>
             <Text style={sp.trendSub}>
               First half: {Math.round(accel.first_half_wpm)} wpm · Second half:{' '}
@@ -440,22 +538,24 @@ function SpeechTab({ result }: { result: AnalysisResult }) {
         )}
       </SectionCard>
 
-      {/* Filler words */}
+      {/* Filler Words — Figma: #FEF9C3 icon bg, badge Corben #AB902B */}
       <SectionCard>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-          <View style={[sh.iconWrap, { backgroundColor: '#fef9c3' }]}>
-            <Text style={sh.iconText}>⚡</Text>
-          </View>
-          <Text style={[sh.title]}>Filler words</Text>
+          <View style={[sh.iconWrap, { backgroundColor: '#FEF9C3' }]} />
+          <Text style={sh.title}>Filler Words</Text>
+          {/* Figma: "4 total" badge — Corben 400 16px #AB902B */}
           <Text style={sp.fillerBadge}>{fillerCount} total</Text>
         </View>
         <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
+          {/* Figma: Rate value is #AB902B amber */}
           <MiniCard label="Rate" value={fillerRate} sub="per minute" color={R.amber} />
           <MiniCard label="% of words" value={`${fillerPct}%`}>
-            <ProgressBar pct={parseFloat(fillerPct) * 10} color="#ef9f27" />
+            {/* Figma: filler bar is #FFEB92 yellow */}
+            <ProgressBar pct={parseFloat(fillerPct) * 10} color="#FFEB92" />
           </MiniCard>
         </View>
         {fillerWords.length > 0 && (
+          // Figma: filler word pills — rgba(254,249,195,0.60) bg, rgba(133,79,11,0.10) border
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {fillerWords.map(([word, count]) => (
               <View key={word} style={sp.pill}>
@@ -467,9 +567,9 @@ function SpeechTab({ result }: { result: AnalysisResult }) {
         )}
       </SectionCard>
 
-      {/* Pauses */}
+      {/* Pauses — Figma: #E0D6E8 lavender icon bg */}
       <SectionCard>
-        <SectionHeader icon="⏸️" title="Pauses" iconBg="#e6f1fb" />
+        <SectionHeader title="Pauses" iconBg="#E0D6E8" />
         <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12 }}>
           <MiniCard label="Count" value={`${m.pause_count}`} sub="≥ 0.5s each" />
           <MiniCard label="Avg pause" value={`${avgPause}s`} />
@@ -484,24 +584,48 @@ function SpeechTab({ result }: { result: AnalysisResult }) {
 }
 
 const sp = StyleSheet.create({
+  // Figma: pace trend card rgba(232,245,227,0.60) bg, rgba(90,107,64,0.20) border
   trendCard: {
-    backgroundColor: 'rgba(232,245,227,0.6)',
+    backgroundColor: 'rgba(232,245,227,0.60)',
     borderWidth: 1.27,
-    borderColor: 'rgba(90,107,64,0.2)',
+    borderColor: 'rgba(90,107,64,0.20)',
     borderRadius: 14,
-    padding: 12,
+    padding: 13,
+    gap: 4,
   },
+  // Figma: Jost 400 10px #8A8070 uppercase letterSpacing 0.25
   trendLabel: {
-    fontFamily: fontFamily.body,
+    fontFamily: 'Jost_400Regular',
     fontSize: 10,
     color: R.textMuted,
     letterSpacing: 0.25,
     textTransform: 'uppercase',
-    marginBottom: 4,
+    lineHeight: 15,
   },
-  trendVal: { fontFamily: fontFamily.bodyMedium, fontSize: 13, color: R.text, marginBottom: 2 },
-  trendSub: { fontFamily: fontFamily.body, fontSize: 11, color: R.textMuted },
-  fillerBadge: { fontFamily: fontFamily.bodyMedium, fontSize: 16, color: R.amber },
+  // Figma: Corben 400 13px #263103
+  trendVal: {
+    fontFamily: 'Corben_400Regular',
+    fontSize: 13,
+    lineHeight: 19.5,
+    color: R.text,
+    includeFontPadding: false,
+  },
+  // Figma: Jost 400 11px #8A8070
+  trendSub: {
+    fontFamily: 'Jost_400Regular',
+    fontSize: 11,
+    lineHeight: 16.5,
+    color: R.textMuted,
+  },
+  // Figma: filler badge Corben 400 16px #AB902B
+  fillerBadge: {
+    fontFamily: 'Corben_400Regular',
+    fontSize: 16,
+    lineHeight: 24,
+    color: R.amber,
+    includeFontPadding: false,
+  },
+  // Figma: filler word pills rgba(254,249,195,0.60)
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -509,21 +633,31 @@ const sp = StyleSheet.create({
     borderWidth: 1.27,
     borderColor: R.amberBorder,
     borderRadius: 999,
-    paddingHorizontal: 10,
+    paddingHorizontal: 13,
     paddingVertical: 6,
   },
-  pillText: { fontFamily: fontFamily.body, fontSize: 12, color: R.amber },
-  pillCount: { fontFamily: fontFamily.bodyMedium, fontSize: 12, color: R.amber },
+  // Figma: Jost 400 12px #9F8113
+  pillText: {
+    fontFamily: 'Jost_400Regular',
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#9F8113',
+  },
+  // Figma: Jost 500 12px #9F8113
+  pillCount: {
+    fontFamily: 'Jost_500Medium',
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#9F8113',
+  },
 });
 
-// ── Vocabulary tab ─────────────────────────────────────────────────────────────
+// ── Vocabulary tab ────────────────────────────────────────────────────────────
 
 function VocabularyTab({ result }: { result: AnalysisResult }) {
   const m = result.metrics;
   const tone = result.tone;
-  if (!m) {
-    return <Text style={empty.text}>No vocabulary data available.</Text>;
-  }
+  if (!m) return <Text style={empty.text}>No vocabulary data available.</Text>;
 
   const richness = (m.vocabulary_richness ?? 0).toFixed(2);
   const richnessPct = Math.round((m.vocabulary_richness ?? 0) * 100);
@@ -534,16 +668,11 @@ function VocabularyTab({ result }: { result: AnalysisResult }) {
 
   return (
     <View>
-      {/* Vocabulary richness */}
       <SectionCard>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-          <View style={[sh.iconWrap, { backgroundColor: '#eef0e8' }]}>
-            <Text style={sh.iconText}>📖</Text>
-          </View>
+          <View style={[sh.iconWrap, { backgroundColor: '#EEF0E8' }]} />
           <Text style={sh.title}>Vocabulary richness</Text>
-          <Text style={{ fontFamily: fontFamily.bodyMedium, fontSize: 16, color: R.accent }}>
-            {richnessPct}
-          </Text>
+          <Text style={sh.badge}>{richnessPct}</Text>
         </View>
         <View style={{ flexDirection: 'row', gap: 12 }}>
           <MiniCard label="Richness score" value={richness} color={R.accent}>
@@ -553,13 +682,10 @@ function VocabularyTab({ result }: { result: AnalysisResult }) {
         </View>
       </SectionCard>
 
-      {/* Repeated phrases */}
       {repeated.length > 0 && (
         <SectionCard>
-          <SectionHeader icon="🔁" title="Repeated phrases" iconBg="#fef9c3" />
-          <Text style={voc.hint}>
-            These phrases appeared 2+ times — try varying your wording.
-          </Text>
+          <SectionHeader title="Repeated phrases" iconBg="#FEF9C3" />
+          <Text style={voc.hint}>These phrases appeared 2+ times — try varying your wording.</Text>
           <View style={{ gap: 8 }}>
             {repeated.slice(0, 5).map((p, i) => (
               <View key={i} style={voc.phraseRow}>
@@ -571,20 +697,14 @@ function VocabularyTab({ result }: { result: AnalysisResult }) {
         </SectionCard>
       )}
 
-      {/* Tone */}
       {(confidence != null || energy != null) && (
         <SectionCard>
-          <SectionHeader icon="🎭" title="Tone" iconBg="#fbeaf0" />
+          <SectionHeader title="Tone" iconBg="#FBEAF0" />
           {confidence != null && (
             <View style={voc.toneRow}>
               <Text style={voc.toneName}>Confidence</Text>
               <View style={voc.toneTrack}>
-                <View
-                  style={[
-                    voc.toneFill,
-                    { width: `${confidence}%` as any, backgroundColor: R.toneBar1 },
-                  ]}
-                />
+                <View style={[voc.toneFill, { width: `${confidence}%` as any, backgroundColor: R.toneBar1 }]} />
               </View>
               <Text style={voc.toneVal}>{confidence}</Text>
             </View>
@@ -593,12 +713,7 @@ function VocabularyTab({ result }: { result: AnalysisResult }) {
             <View style={voc.toneRow}>
               <Text style={voc.toneName}>Energy</Text>
               <View style={voc.toneTrack}>
-                <View
-                  style={[
-                    voc.toneFill,
-                    { width: `${energy}%` as any, backgroundColor: R.toneBar2 },
-                  ]}
-                />
+                <View style={[voc.toneFill, { width: `${energy}%` as any, backgroundColor: R.toneBar2 }]} />
               </View>
               <Text style={voc.toneVal}>{energy}</Text>
             </View>
@@ -611,77 +726,71 @@ function VocabularyTab({ result }: { result: AnalysisResult }) {
 
 const voc = StyleSheet.create({
   hint: {
-    fontFamily: fontFamily.body,
+    fontFamily: 'Jost_400Regular',
     fontSize: 12,
-    color: R.textMuted,
     lineHeight: 19,
+    color: R.textMuted,
     marginBottom: 10,
   },
   phraseRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(238,240,232,0.6)',
+    backgroundColor: 'rgba(238,240,232,0.60)',
     borderWidth: 1.27,
-    borderColor: 'rgba(38,49,3,0.1)',
+    borderColor: 'rgba(38,49,3,0.10)',
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   phraseText: {
-    fontFamily: fontFamily.bodyMedium,
+    fontFamily: 'Jost_500Medium',
     fontSize: 12,
+    lineHeight: 18,
     color: R.text,
     flex: 1,
   },
-  phraseCount: { fontFamily: fontFamily.body, fontSize: 12, color: R.accent },
-  toneRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 10,
+  phraseCount: {
+    fontFamily: 'Jost_400Regular',
+    fontSize: 12,
+    lineHeight: 18,
+    color: R.accent,
   },
-  toneName: { fontFamily: fontFamily.body, fontSize: 12, color: R.textMuted, width: 80 },
-  toneTrack: {
-    flex: 1,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: R.progressBg,
-    overflow: 'hidden',
+  toneRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
+  toneName: {
+    fontFamily: 'Jost_400Regular',
+    fontSize: 12,
+    lineHeight: 18,
+    color: R.textMuted,
+    width: 80,
   },
+  toneTrack: { flex: 1, height: 8, borderRadius: 4, backgroundColor: R.progressBg, overflow: 'hidden' },
   toneFill: { height: '100%', borderRadius: 4 },
   toneVal: {
-    fontFamily: fontFamily.bodyMedium,
+    fontFamily: 'Jost_500Medium',
     fontSize: 13,
+    lineHeight: 19.5,
     color: R.text,
     width: 28,
     textAlign: 'right',
   },
 });
 
-// ── Grammar tab ────────────────────────────────────────────────────────────────
+// ── Grammar tab ───────────────────────────────────────────────────────────────
 
 function GrammarTab({ result }: { result: AnalysisResult }) {
   const m = result.metrics;
-  if (!m) {
-    return <Text style={empty.text}>No grammar data available.</Text>;
-  }
+  if (!m) return <Text style={empty.text}>No grammar data available.</Text>;
 
   const grammarScore = Math.round(m.grammar_score ?? 0);
-  const allIssues = (m.sentences ?? [])
-    .flatMap((s) => s.grammar_issues ?? [])
-    .slice(0, 6);
+  const allIssues = (m.sentences ?? []).flatMap((s) => s.grammar_issues ?? []).slice(0, 6);
 
   return (
     <View>
       <SectionCard>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-          <View style={[sh.iconWrap, { backgroundColor: '#e8f5e3' }]}>
-            <Text style={sh.iconText}>✓</Text>
-          </View>
+          <View style={[sh.iconWrap, { backgroundColor: '#E8F5E3' }]} />
           <Text style={sh.title}>Grammar score</Text>
-          <Text style={{ fontFamily: fontFamily.bodyMedium, fontSize: 16, color: R.accent }}>
-            {grammarScore} / 100
-          </Text>
+          <Text style={sh.badge}>{grammarScore} / 100</Text>
         </View>
         <ProgressBar pct={grammarScore} color={R.accent} />
         {allIssues.length > 0 ? (
@@ -711,47 +820,55 @@ const gr = StyleSheet.create({
     gap: 4,
   },
   issueText: {
-    fontFamily: fontFamily.body,
+    fontFamily: 'Jost_400Regular',
     fontSize: 12,
+    lineHeight: 18,
     color: R.grammarError,
     fontStyle: 'italic',
   },
-  issueFix: { fontFamily: fontFamily.body, fontSize: 11, color: R.textMuted },
-  noIssues: { fontFamily: fontFamily.body, fontSize: 13, color: R.textMuted, marginTop: 12 },
+  issueFix: {
+    fontFamily: 'Jost_400Regular',
+    fontSize: 11,
+    lineHeight: 16.5,
+    color: R.textMuted,
+  },
+  noIssues: {
+    fontFamily: 'Jost_400Regular',
+    fontSize: 13,
+    lineHeight: 19.5,
+    color: R.textMuted,
+    marginTop: 12,
+  },
 });
 
-// ── Feedback tab ───────────────────────────────────────────────────────────────
+// ── Feedback tab ──────────────────────────────────────────────────────────────
 
 function FeedbackTab({ result }: { result: AnalysisResult }) {
   const feedback = result.feedback;
-  if (!feedback) {
-    return <Text style={empty.text}>No feedback available.</Text>;
-  }
+  if (!feedback) return <Text style={empty.text}>No feedback available.</Text>;
 
   return (
     <View>
       {feedback.summary ? (
         <SectionCard>
-          <SectionHeader icon="💬" title="Summary" iconBg="#e6f1fb" />
+          <SectionHeader title="Summary" iconBg="#E6F1FB" />
           <Text style={fb.bodyText}>{feedback.summary}</Text>
         </SectionCard>
       ) : null}
-
       {feedback.strengths?.length > 0 && (
         <SectionCard>
-          <SectionHeader icon="✅" title="Strengths" iconBg="#e8f5e3" />
+          <SectionHeader title="Strengths" iconBg="#E8F5E3" />
           {feedback.strengths.map((s, i) => (
             <View key={i} style={fb.row}>
-              <View style={[fb.dot, { backgroundColor: R.accentGreen }]} />
+              <View style={[fb.dot, { backgroundColor: R.accent }]} />
               <Text style={fb.bodyText}>{s}</Text>
             </View>
           ))}
         </SectionCard>
       )}
-
       {feedback.improvements?.length > 0 && (
         <SectionCard>
-          <SectionHeader icon="📈" title="To improve" iconBg="#fef9c3" />
+          <SectionHeader title="To improve" iconBg="#FEF9C3" />
           {feedback.improvements.map((s, i) => (
             <View key={i} style={fb.row}>
               <View style={[fb.dot, { backgroundColor: R.amber }]} />
@@ -760,13 +877,12 @@ function FeedbackTab({ result }: { result: AnalysisResult }) {
           ))}
         </SectionCard>
       )}
-
       {feedback.tips?.length > 0 && (
         <SectionCard>
-          <SectionHeader icon="💡" title="Tips" iconBg="#e6f1fb" />
+          <SectionHeader title="Tips" iconBg="#E6F1FB" />
           {feedback.tips.map((s, i) => (
             <View key={i} style={fb.row}>
-              <View style={[fb.dot, { backgroundColor: '#79b8ff' }]} />
+              <View style={[fb.dot, { backgroundColor: '#79B8FF' }]} />
               <Text style={fb.bodyText}>{s}</Text>
             </View>
           ))}
@@ -778,34 +894,30 @@ function FeedbackTab({ result }: { result: AnalysisResult }) {
 
 const fb = StyleSheet.create({
   bodyText: {
-    fontFamily: fontFamily.body,
+    fontFamily: 'Jost_400Regular',
     fontSize: 13,
-    color: R.textMuted,
     lineHeight: 20,
+    color: R.textMuted,
     flex: 1,
   },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    marginBottom: 8,
-  },
+  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 8 },
   dot: { width: 6, height: 6, borderRadius: 3, marginTop: 6, flexShrink: 0 },
 });
 
-// ── empty state ────────────────────────────────────────────────────────────────
+// ── empty state ───────────────────────────────────────────────────────────────
 
 const empty = StyleSheet.create({
   text: {
-    fontFamily: fontFamily.body,
+    fontFamily: 'Jost_400Regular',
     fontSize: 13,
+    lineHeight: 19.5,
     color: R.textMuted,
     padding: 16,
     textAlign: 'center',
   },
 });
 
-// ── main screen ────────────────────────────────────────────────────────────────
+// ── main screen ───────────────────────────────────────────────────────────────
 
 export function AnalysisSummaryScreen({
   navigation,
@@ -829,7 +941,7 @@ export function AnalysisSummaryScreen({
         {/* Hero score card */}
         <HeroCard result={result} />
 
-        {/* Tabbed content card */}
+        {/* Tabbed content card — Figma: rgba(255,255,255,0.90) radius 24 */}
         <View style={styles.tabbedCard}>
           <TabBar active={activeTab} onChange={setActiveTab} />
           <View style={styles.tabContent}>
@@ -841,9 +953,12 @@ export function AnalysisSummaryScreen({
         </View>
       </ScrollView>
 
-      {/* Sticky bottom button */}
+      {/* Sticky share button — Figma: #757D5C fill, radius 14, Jost 500 14px white */}
       <View style={[styles.btnWrap, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-        <Pressable style={styles.doneBtn} onPress={done}>
+        <Pressable
+          style={({ pressed }) => [styles.doneBtn, pressed && styles.doneBtnPressed]}
+          onPress={done}
+        >
           <Text style={styles.doneBtnText}>Share results</Text>
         </Pressable>
       </View>
@@ -854,8 +969,10 @@ export function AnalysisSummaryScreen({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: R.bg },
   scroll: { flex: 1 },
+
+  // Figma: tabbed card rgba(255,255,255,0.90) radius 24, offset from edges
   tabbedCard: {
-    marginHorizontal: 12,
+    marginHorizontal: 24,
     marginTop: 16,
     marginBottom: 12,
     backgroundColor: R.cardBg,
@@ -865,22 +982,24 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.10,
     shadowRadius: 3,
     elevation: 2,
   },
   tabContent: { padding: 16 },
+
   btnWrap: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     paddingTop: 12,
     backgroundColor: R.bg,
     borderTopWidth: 1,
     borderTopColor: 'rgba(38,49,3,0.08)',
   },
+  // Figma: #757D5C fill, radius 14, shadow
   doneBtn: {
     backgroundColor: R.btnBg,
     paddingVertical: 14,
@@ -888,13 +1007,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.10,
     shadowRadius: 3,
     elevation: 2,
   },
+  doneBtnPressed: { backgroundColor: '#636950' },
+  // Figma: Jost 500 14px white
   doneBtnText: {
-    fontFamily: fontFamily.bodyMedium,
+    fontFamily: 'Jost_500Medium',
     fontSize: 14,
+    lineHeight: 20,
     color: 'white',
   },
 });
