@@ -1,9 +1,35 @@
+import logging
+import httpx
 from fastapi import HTTPException
 from app.db import queries
 from app.models.job import CreateJobResponse, JobStatusResponse, JobResultResponse
 from app.services import storage_service
 
+log = logging.getLogger(__name__)
+
 PLACEHOLDER_USER_ID = "00000000-0000-0000-0000-000000000000"
+GCP_PROJECT = "speakeasy-490921"
+GCP_REGION = "us-east1"
+WORKER_JOB_NAME = "speakeasy-worker"
+
+
+def _trigger_worker(job_id: str) -> None:
+    try:
+        token_resp = httpx.get(
+            "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token",
+            headers={"Metadata-Flavor": "Google"},
+            timeout=5,
+        )
+        token = token_resp.json()["access_token"]
+        httpx.post(
+            f"https://run.googleapis.com/v2/projects/{GCP_PROJECT}/locations/{GCP_REGION}/jobs/{WORKER_JOB_NAME}:run",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"overrides": {"containerOverrides": [{"env": [{"name": "JOB_ID", "value": job_id}]}]}},
+            timeout=10,
+        )
+        log.info(f"Triggered worker for job {job_id}")
+    except Exception as e:
+        log.warning(f"Failed to trigger worker for job {job_id}: {e}")
 
 
 def create_job(upload_id: str, options: dict, context: dict | None) -> CreateJobResponse:
@@ -17,6 +43,7 @@ def create_job(upload_id: str, options: dict, context: dict | None) -> CreateJob
         options=options,
         context=context,
     )
+    _trigger_worker(job["id"])
     return CreateJobResponse(job_id=job["id"], status=job["status"], stage=job["stage"])
 
 

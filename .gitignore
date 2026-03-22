@@ -48,3 +48,4 @@ yarn-error.*
 # Generated native folders
 /frontend/ios
 /frontend/android
+.claude
