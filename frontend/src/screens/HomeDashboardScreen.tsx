@@ -177,8 +177,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   streakIcon: {
-    width: 20,
-    height: 20,
+    width: 26,
+    height: 26,
   },
   streakValueRow: {
     flexDirection: 'row',
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   streakNum: {
-    fontFamily: fontFamily.bodySemiBold,
+    fontFamily: fontFamily.playfair,
     fontSize: 48,
     color: '#2E3520',
   },
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   analyticsValue: {
-    fontFamily: fontFamily.bodySemiBold,
+    fontFamily: fontFamily.playfair,
     fontSize: 40,
     color: '#1F2A16',
     lineHeight: 44,

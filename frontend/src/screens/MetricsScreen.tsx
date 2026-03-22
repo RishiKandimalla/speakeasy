@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { authColors, fontFamily, radius, spacing } from '../theme';
@@ -11,6 +11,8 @@ const CALENDAR_DAYS = [
   '22', '23', '24', '25', '26', '27', '28',
   '29', '30', '', '', '', '', '',
 ];
+const WEEKDAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+const CALENDAR_ROWS = [0, 1, 2, 3, 4].map((row) => CALENDAR_DAYS.slice(row * 7, row * 7 + 7));
 
 export function MetricsScreen() {
   const insets = useSafeAreaInsets();
@@ -25,7 +27,7 @@ export function MetricsScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.header}>
-        <Text style={styles.brand}>Speakeasy</Text>
+        <Image source={require('../../assets/images/speakeasy_name.png')} style={styles.wordmark} resizeMode="contain" />
         <View style={styles.headerIcons}>
           <Ionicons name="notifications-outline" size={22} color="#1F2A16" />
           <Ionicons name="menu-outline" size={24} color="#1F2A16" />
@@ -37,15 +39,24 @@ export function MetricsScreen() {
         <View style={styles.videoStub}>
           <Ionicons name="play" size={34} color="#FFFFFF" />
           <View style={styles.durationPill}>
-            <Text style={styles.durationText}>3:48</Text>
+            <Text style={styles.durationText}>1:18</Text>
           </View>
         </View>
         <Text style={styles.videoTitle}>My Career Goals</Text>
         <Text style={styles.videoDate}>March 20, 2026</Text>
         <View style={styles.tagRow}>
-          <Text style={styles.tag}>87 clarity</Text>
-          <Text style={styles.tag}>12 fillers</Text>
-          <Text style={styles.tag}>145 wpm</Text>
+          <View style={styles.tagPill}>
+            <View style={[styles.tagDot, { backgroundColor: '#9ACE58' }]} />
+            <Text style={styles.tagText}>87 clarity</Text>
+          </View>
+          <View style={styles.tagPill}>
+            <View style={[styles.tagDot, { backgroundColor: '#FFC861' }]} />
+            <Text style={styles.tagText}>12 fillers</Text>
+          </View>
+          <View style={styles.tagPill}>
+            <View style={[styles.tagDot, { backgroundColor: '#72A9FF' }]} />
+            <Text style={styles.tagText}>145 wpm</Text>
+          </View>
         </View>
       </View>
 
@@ -57,22 +68,29 @@ export function MetricsScreen() {
           <Text style={styles.monthNav}>Next →</Text>
         </View>
         <View style={styles.weekHeader}>
-          {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day) => (
-            <Text key={day} style={styles.weekLabel}>
-              {day}
-            </Text>
+          {WEEKDAY_LABELS.map((day) => (
+            <View key={day} style={styles.weekSlot}>
+              <Text style={styles.weekLabel}>{day}</Text>
+            </View>
           ))}
         </View>
         <View style={styles.calendarGrid}>
-          {CALENDAR_DAYS.map((day, idx) => {
-            const active = day === '21';
-            const selected = day === '4';
-            return (
-              <View key={`${day}-${idx}`} style={[styles.dayCell, active && styles.dayCellActive, selected && styles.dayCellSelected]}>
-                <Text style={[styles.dayLabel, active && styles.dayLabelActive]}>{day}</Text>
-              </View>
-            );
-          })}
+          {CALENDAR_ROWS.map((row, rowIndex) => (
+            <View key={rowIndex} style={styles.calendarRow}>
+              {row.map((day, idx) => {
+                const active = day === '21';
+                const selected = day === '4' || day === '6' || day === '7';
+                const empty = day === '';
+                return (
+                  <View key={`${rowIndex}-${idx}-${day}`} style={styles.daySlot}>
+                    <View style={[styles.dayCell, selected && styles.dayCellSelected, active && styles.dayCellActive, empty && styles.dayCellEmpty]}>
+                      <Text style={[styles.dayLabel, active && styles.dayLabelActive]}>{day}</Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          ))}
         </View>
       </View>
 
@@ -92,21 +110,23 @@ export function MetricsScreen() {
             <Text style={styles.statSub}>Day streak</Text>
           </View>
         </View>
-        <View style={styles.metricRow}>
+        <View style={styles.metricRowWrap}>
           <Text style={styles.metricLabel}>Clarity</Text>
           <View style={styles.metricBarTrack}>
             <View style={[styles.metricBarFill, { width: '87%', backgroundColor: '#7D9D3F' }]} />
           </View>
           <Text style={styles.metricValue}>87 / 100</Text>
         </View>
-        <View style={styles.metricRow}>
+        <View style={styles.metricDivider} />
+        <View style={styles.metricRowWrap}>
           <Text style={styles.metricLabel}>Filler words</Text>
           <View style={styles.metricBarTrack}>
             <View style={[styles.metricBarFill, { width: '42%', backgroundColor: '#F4DB67' }]} />
           </View>
           <Text style={styles.metricValue}>12 / video</Text>
         </View>
-        <View style={styles.metricRow}>
+        <View style={styles.metricDivider} />
+        <View style={styles.metricRowWrap}>
           <Text style={styles.metricLabel}>Speaking rate</Text>
           <View style={styles.metricBarTrack}>
             <View style={[styles.metricBarFill, { width: '73%', backgroundColor: '#D5C7E8' }]} />
@@ -135,13 +155,17 @@ const styles = StyleSheet.create({
     fontSize: 30,
     color: '#111111',
   },
+  wordmark: {
+    width: 116,
+    height: 30,
+  },
   headerIcons: {
     flexDirection: 'row',
     gap: spacing.md,
   },
   sectionTitle: {
     fontFamily: fontFamily.bodySemiBold,
-    fontSize: 19,
+    fontSize: 14,
     color: '#B0B3C0',
     marginTop: spacing.md,
     marginBottom: spacing.sm,
@@ -193,11 +217,21 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     flexWrap: 'wrap',
   },
-  tag: {
+  tagPill: {
     backgroundColor: '#F6F8FB',
     borderRadius: radius.full,
     paddingHorizontal: 10,
     paddingVertical: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  tagDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  tagText: {
     fontFamily: fontFamily.bodyMedium,
     fontSize: 14,
     color: '#4D5669',
@@ -223,17 +257,27 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: spacing.xs,
   },
+  weekSlot: {
+    flex: 1,
+    alignItems: 'center',
+  },
   weekLabel: {
-    width: 40,
+    width: 42,
     textAlign: 'center',
     fontFamily: fontFamily.bodyMedium,
     color: '#C5C8D3',
     fontSize: 11,
   },
   calendarGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 6,
+  },
+  calendarRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  daySlot: {
+    flex: 1,
+    alignItems: 'center',
   },
   dayCell: {
     width: 42,
@@ -242,6 +286,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FBFCF8',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  dayCellEmpty: {
+    backgroundColor: 'transparent',
   },
   dayCellSelected: {
     backgroundColor: '#F4F6ED',
@@ -270,8 +317,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statNum: {
-    fontFamily: fontFamily.bodySemiBold,
-    fontSize: 22,
+    fontFamily: fontFamily.playfair,
+    fontSize: 36,
+    lineHeight: 38,
     color: '#1F2A16',
   },
   statSub: {
@@ -279,10 +327,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#A8ABBA',
   },
-  metricRow: {
+  metricRowWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    paddingVertical: spacing.sm,
+  },
+  metricDivider: {
+    height: 1,
+    backgroundColor: '#ECEDE4',
   },
   metricLabel: {
     width: 80,

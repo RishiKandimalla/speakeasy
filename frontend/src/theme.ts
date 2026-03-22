@@ -52,6 +52,8 @@ export const fontFamily = {
   body: 'Jost_400Regular',
   bodyMedium: 'Jost_500Medium',
   bodySemiBold: 'Jost_600SemiBold',
+  playfair: 'PlayfairDisplay_400Regular',
+  playfairSemiBold: 'PlayfairDisplay_600SemiBold',
   mono: 'Courier',
 } as const;
 

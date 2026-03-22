@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { authColors, fontFamily, radius, spacing } from '../theme';
@@ -26,7 +26,7 @@ export function ProfileScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.header}>
-        <Text style={styles.brand}>Speakeasy</Text>
+        <Image source={require('../../assets/images/speakeasy_name.png')} style={styles.wordmark} resizeMode="contain" />
         <View style={styles.headerIcons}>
           <Ionicons name="notifications-outline" size={22} color="#1F2A16" />
           <Ionicons name="menu-outline" size={24} color="#1F2A16" />
@@ -108,6 +108,10 @@ const styles = StyleSheet.create({
     fontSize: 30,
     color: '#111111',
   },
+  wordmark: {
+    width: 116,
+    height: 30,
+  },
   headerIcons: {
     flexDirection: 'row',
     gap: spacing.md,
@@ -131,8 +135,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   profileNum: {
-    fontFamily: fontFamily.bodySemiBold,
-    fontSize: 34,
+    fontFamily: fontFamily.bodyMedium,
+    fontSize: 20,
     color: '#1E2514',
   },
   profileLabel: {
@@ -190,21 +194,22 @@ const styles = StyleSheet.create({
     borderBottomColor: '#D4D8E3',
   },
   tabItemActive: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: spacing.xs,
     paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
     borderBottomWidth: 3,
     borderBottomColor: '#4D5A37',
   },
   tabItem: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: spacing.xs,
     paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    marginLeft: spacing.md,
   },
   tabItemTextActive: {
     fontFamily: fontFamily.bodyMedium,

@@ -4,6 +4,10 @@ import {
   Jost_500Medium,
   Jost_600SemiBold,
 } from '@expo-google-fonts/jost';
+import {
+  PlayfairDisplay_400Regular,
+  PlayfairDisplay_600SemiBold,
+} from '@expo-google-fonts/playfair-display';
 import { useFonts } from 'expo-font';
 import { NavigationContainer, DefaultTheme, type Theme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -199,6 +203,8 @@ export default function App() {
     Jost_400Regular,
     Jost_500Medium,
     Jost_600SemiBold,
+    PlayfairDisplay_400Regular,
+    PlayfairDisplay_600SemiBold,
   });
 
   if (!fontsLoaded) {
