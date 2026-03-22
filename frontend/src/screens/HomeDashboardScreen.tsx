@@ -124,23 +124,23 @@ export function HomeDashboardScreen() {
               <NotificationBell />
             </Pressable>
             <Pressable hitSlop={8} onPress={() => setMenuVisible(true)}>
-              <Ionicons name="menu-outline" size={24} color="#1F2A16" />
+              <Ionicons name="menu-outline" size={24} color="#263103" />
             </Pressable>
           </View>
         </View>
 
         {loading ? (
           <View style={styles.loadingBox}>
-            <ActivityIndicator color="#678A45" />
+            <ActivityIndicator color="#4A5240" />
           </View>
         ) : (
           <>
             {/* Streak card */}
             <View style={styles.card}>
               <View style={styles.streakHeader}>
-                <Text style={styles.streakLabel}>CURRENT STREAK</Text>
+                <Text style={styles.streakLabel}>Current Streak</Text>
                 <View style={styles.streakIconWrap}>
-                  <Image source={require('../../assets/icons/fire_streak_icon.png')} style={styles.streakIcon} resizeMode="contain" />
+                  <Image source={require('../../assets/icons/streak.png')} style={styles.streakIcon} resizeMode="contain" />
                 </View>
               </View>
               <View style={styles.streakValueRow}>
@@ -148,7 +148,13 @@ export function HomeDashboardScreen() {
                 <Text style={styles.streakDays}>days</Text>
               </View>
               <View style={styles.streakFooter}>
-                <Text style={styles.streakMeta}>{isEmpty ? 'Start your streak today!' : 'Keep it going!'}</Text>
+                <Text style={styles.streakMeta}>Weekly score</Text>
+                <View style={styles.weeklyScoreRow}>
+                  <Text style={styles.weeklyScorePts}>{avg?.overall_score != null ? `${Math.round(avg.overall_score * 6.56)} pts` : '-- pts'}</Text>
+                  <View style={styles.todayBadge}>
+                    <Text style={styles.todayBadgeText}>+68 today</Text>
+                  </View>
+                </View>
               </View>
             </View>
 
@@ -178,7 +184,7 @@ export function HomeDashboardScreen() {
                   <View style={[styles.dailyDoneRow, styles.dailyPendingRow]}>
                     <View style={styles.doneLeft}>
                       <View style={[styles.checkIconWrap, styles.checkIconPending]}>
-                        <Ionicons name="videocam-outline" size={14} color="#A9ADBF" />
+                        <Ionicons name="videocam-outline" size={14} color="#9CA3AF" />
                       </View>
                       <Text style={[styles.doneText, styles.pendingText]}>No video yet today</Text>
                     </View>
@@ -226,10 +232,42 @@ export function HomeDashboardScreen() {
               </View>
             </View>
 
+            {/* Most recent recording */}
+            <View>
+              <Text style={styles.sectionLabel}>Most recent</Text>
+              <View style={styles.card}>
+                {/* Video thumbnail placeholder */}
+                <View style={styles.videoThumb}>
+                  <View style={styles.playBtn}>
+                    <Ionicons name="play" size={24} color="white" />
+                  </View>
+                  <View style={styles.durationBadge}>
+                    <Text style={styles.durationText}>3:48</Text>
+                  </View>
+                </View>
+                <Text style={styles.recordingTitle}>My Career Goals</Text>
+                <Text style={styles.recordingDate}>March 20, 2026</Text>
+                <View style={styles.tagsRow}>
+                  <View style={styles.tag}>
+                    <View style={[styles.tagDot, { backgroundColor: '#639922' }]} />
+                    <Text style={styles.tagText}>87 clarity</Text>
+                  </View>
+                  <View style={styles.tag}>
+                    <View style={[styles.tagDot, { backgroundColor: '#EF9F27' }]} />
+                    <Text style={styles.tagText}>12 fillers</Text>
+                  </View>
+                  <View style={styles.tag}>
+                    <View style={[styles.tagDot, { backgroundColor: '#B9CCA3' }]} />
+                    <Text style={styles.tagText}>145 wpm</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+
             {/* Analytics */}
             <View style={styles.card}>
               <View style={styles.rowBetween}>
-                <Text style={styles.sectionHeading}>Recording analytics</Text>
+                <Text style={styles.sectionHeading}>Recording Analytics</Text>
                 <Text style={styles.sectionHint}>All time</Text>
               </View>
               <View style={styles.analyticsGrid}>
@@ -245,12 +283,12 @@ export function HomeDashboardScreen() {
                 </View>
                 <View style={styles.analyticsItem}>
                   <Text style={styles.analyticsLabel}>Filler words</Text>
-                  <Text style={[styles.analyticsValue, isEmpty ? styles.emptyAnalyticsValue : { color: '#C8842E' }]}>{fillerPct}</Text>
+                  <Text style={[styles.analyticsValue, isEmpty ? styles.emptyAnalyticsValue : { color: '#854F0B' }]}>{fillerPct}</Text>
                   <Text style={styles.analyticsSub}>avg this week</Text>
                 </View>
                 <View style={styles.analyticsItem}>
                   <Text style={styles.analyticsLabel}>Speaking rate</Text>
-                  <Text style={[styles.analyticsValue, isEmpty ? styles.emptyAnalyticsValue : { color: '#678A45' }]}>{wpmStr}</Text>
+                  <Text style={[styles.analyticsValue, isEmpty ? styles.emptyAnalyticsValue : { color: '#3B6D11' }]}>{wpmStr}</Text>
                   <Text style={styles.analyticsSub}>wpm avg</Text>
                 </View>
               </View>
@@ -266,7 +304,7 @@ export function HomeDashboardScreen() {
 const styles = StyleSheet.create({
   scroll: {
     flex: 1,
-    backgroundColor: authColors.background,
+    backgroundColor: '#FFFAE0', // Figma cream background
   },
   root: {
     paddingHorizontal: spacing.lg,
@@ -292,11 +330,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   card: {
-    backgroundColor: '#FFFFFC',
-    borderWidth: 1,
-    borderColor: '#DCD8CA',
-    borderRadius: radius.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    borderWidth: 1.27,
+    borderColor: 'rgba(38, 49, 3, 0.18)',
+    borderRadius: 16,
     padding: spacing.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.10,
+    shadowRadius: 3,
+    elevation: 2,
   },
   streakHeader: {
     flexDirection: 'row',
@@ -304,11 +347,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
+  // Figma: "Current Streak" label uses Corben, color #9CA3AF, 14px, capitalize, letterSpacing 0.55
   streakLabel: {
-    fontFamily: fontFamily.bodySemiBold,
-    fontSize: 11,
-    letterSpacing: 1.6,
-    color: '#A9ADBF',
+    fontFamily: 'Corben_400Regular',
+    fontSize: 14,
+    letterSpacing: 0.55,
+    color: '#9CA3AF',
+    textTransform: 'capitalize',
   },
   streakIconWrap: {
     width: 38,
@@ -326,55 +371,92 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: spacing.xs,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
+  // Figma: streak number uses Corben 44px, color #4A5240
   streakNum: {
-    fontFamily: fontFamily.playfair,
-    fontSize: 48,
-    color: '#2E3520',
+    fontFamily: 'Corben_400Regular',
+    fontSize: 44,
+    color: '#4A5240',
+    lineHeight: 62,
+    includeFontPadding: false,
   },
   emptyNum: {
     color: '#C4CABD',
   },
+  // Figma: "days" label uses Jost 13px, color #9CA3AF
   streakDays: {
-    fontFamily: fontFamily.body,
+    fontFamily: 'Jost_400Regular',
     fontSize: 13,
-    color: '#99A0B3',
+    color: '#9CA3AF',
   },
   streakFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderTopWidth: 0.5,
+    borderTopColor: 'rgba(0,0,0,0.08)',
+    paddingTop: spacing.sm,
+    marginTop: spacing.xs,
   },
+  // Figma: "Weekly score" uses Jost 13px, color #6B7280
   streakMeta: {
-    fontFamily: fontFamily.body,
+    fontFamily: 'Jost_400Regular',
     fontSize: 13,
-    color: '#8F96AC',
+    color: '#6B7280',
   },
+  weeklyScoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  // Figma: pts text uses Jost 14px medium, color #111827
+  weeklyScorePts: {
+    fontFamily: 'Jost_500Medium',
+    fontSize: 14,
+    color: '#111827',
+  },
+  // Figma: today badge is #EAF3DE pill with green text
+  todayBadge: {
+    backgroundColor: '#EAF3DE',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 2,
+  },
+  todayBadgeText: {
+    fontFamily: 'Jost_500Medium',
+    fontSize: 11,
+    color: '#3B6D11',
+    lineHeight: 16.5,
+  },
+  // Figma: section headings use Corben 14px, color #111827
   sectionHeading: {
-    fontFamily: fontFamily.bodySemiBold,
-    fontSize: 18,
-    color: '#1F2A16',
+    fontFamily: 'Corben_400Regular',
+    fontSize: 14,
+    color: '#111827',
+    lineHeight: 22,
+    marginBottom: 4,
   },
+  // Figma: subheading uses Jost 12px, color #9CA3AF
   sectionSubheading: {
-    fontFamily: fontFamily.body,
-    color: '#A1A8BC',
+    fontFamily: 'Jost_400Regular',
+    color: '#9CA3AF',
     fontSize: 12,
     marginBottom: spacing.sm,
   },
   dailyDoneRow: {
-    borderWidth: 1,
-    borderColor: '#E3E6ED',
-    borderRadius: radius.md,
-    backgroundColor: '#FCFCF9',
+    borderWidth: 1.27,
+    borderColor: 'rgba(0,0,0,0.08)',
+    borderRadius: 14,
+    backgroundColor: '#F7F8F4',
     padding: spacing.sm,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   dailyPendingRow: {
-    backgroundColor: '#FAFAFA',
-    borderColor: '#EBEBEB',
+    backgroundColor: '#F7F8F4',
+    borderColor: 'rgba(0,0,0,0.08)',
   },
   doneLeft: {
     flexDirection: 'row',
@@ -389,27 +471,29 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EEF6E3',
+    backgroundColor: '#EAF3DE',
   },
   checkIconPending: {
-    backgroundColor: '#F2F2F2',
+    backgroundColor: '#EAF3DE',
   },
   checkIcon: {
     width: 16,
     height: 16,
   },
+  // Figma: done text uses Corben 13px, color #111827
   doneText: {
-    fontFamily: fontFamily.bodyMedium,
-    fontSize: 12,
-    color: '#1F2A16',
+    fontFamily: 'Corben_400Regular',
+    fontSize: 13,
+    color: '#111827',
   },
   pendingText: {
-    color: '#B0B5C8',
+    color: '#9CA3AF',
   },
+  // Figma: "Review videos" uses Jost 13px medium, color #4A5240, underline
   reviewLink: {
-    fontFamily: fontFamily.bodySemiBold,
-    fontSize: 12,
-    color: '#3E4537',
+    fontFamily: 'Jost_500Medium',
+    fontSize: 13,
+    color: '#4A5240',
     textDecorationLine: 'underline',
   },
   rowBetween: {
@@ -418,15 +502,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
+  // Figma: "All time" hint uses Corben 11px, color #9CA3AF
   sectionHint: {
-    fontFamily: fontFamily.body,
-    fontSize: 12,
-    color: '#A2A9BD',
+    fontFamily: 'Corben_400Regular',
+    fontSize: 11,
+    color: '#9CA3AF',
   },
   chart: {
     height: 86,
     borderRadius: radius.md,
-    backgroundColor: '#FBFCF8',
+    backgroundColor: '#F7F8F4',
     overflow: 'hidden',
     position: 'relative',
     marginBottom: spacing.sm,
@@ -437,7 +522,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emptyChartText: {
-    fontFamily: fontFamily.body,
+    fontFamily: 'Jost_400Regular',
     fontSize: 12,
     color: '#C0C5D4',
   },
@@ -446,7 +531,7 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#58614F',
+    backgroundColor: '#4A5240',
   },
   activeDotStyle: {
     width: 11,
@@ -454,20 +539,105 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 2,
     borderColor: '#DBDFD4',
-    backgroundColor: '#657256',
+    backgroundColor: '#639922',
   },
   weekAxis: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
+  // Figma: week days use Jost 13px, color #9CA3AF (muted)
   weekDay: {
-    fontFamily: fontFamily.body,
+    fontFamily: 'Jost_400Regular',
     fontSize: 12,
-    color: '#A3AAC0',
+    color: '#9CA3AF',
   },
   weekDayActive: {
-    color: '#1F2A16',
-    fontFamily: fontFamily.bodyMedium,
+    color: '#111827',
+    fontFamily: 'Jost_500Medium',
+  },
+  // Most recent section label
+  sectionLabel: {
+    fontFamily: 'Corben_400Regular',
+    fontSize: 11,
+    color: '#9CA4AF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.55,
+    marginBottom: spacing.xs,
+  },
+  // Video thumbnail
+  videoThumb: {
+    height: 173,
+    borderRadius: 10,
+    backgroundColor: '#2E2E23',
+    marginBottom: spacing.sm,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  playBtn: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(0,0,0,0.40)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  durationBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    backgroundColor: 'rgba(0,0,0,0.60)',
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  durationText: {
+    fontFamily: 'Jost_500Medium',
+    fontSize: 11,
+    color: 'white',
+    lineHeight: 16.5,
+  },
+  // Figma: recording title uses Corben 14px, color #111827
+  recordingTitle: {
+    fontFamily: 'Corben_400Regular',
+    fontSize: 14,
+    color: '#111827',
+    lineHeight: 21,
+    marginBottom: 2,
+  },
+  // Figma: recording date uses Jost 11px, color #9CA3AF
+  recordingDate: {
+    fontFamily: 'Jost_400Regular',
+    fontSize: 11,
+    color: '#9CA3AF',
+    lineHeight: 16.5,
+    marginBottom: spacing.sm,
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#F7F8F4',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  tagDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 999,
+  },
+  // Figma: tag text uses Jost 11px, color #6B7280
+  tagText: {
+    fontFamily: 'Jost_400Regular',
+    fontSize: 11,
+    color: '#6B7280',
+    lineHeight: 16.5,
   },
   analyticsGrid: {
     flexDirection: 'row',
@@ -476,29 +646,33 @@ const styles = StyleSheet.create({
   },
   analyticsItem: {
     width: '48.5%',
-    backgroundColor: '#FBFCF8',
-    borderRadius: radius.md,
+    backgroundColor: '#F7F8F4',
+    borderRadius: 10,
     padding: spacing.sm,
   },
+  // Figma: analytics label uses Jost 11px, color #9CA3AF
   analyticsLabel: {
-    fontFamily: fontFamily.body,
-    fontSize: 12,
-    color: '#A5AAC0',
+    fontFamily: 'Jost_400Regular',
+    fontSize: 11,
+    color: '#9CA3AF',
     marginBottom: spacing.xs,
   },
+  // Figma: analytics value uses Corben 26px, color #111827
   analyticsValue: {
-    fontFamily: fontFamily.playfair,
-    fontSize: 40,
-    color: '#1F2A16',
-    lineHeight: 44,
+    fontFamily: 'Corben_400Regular',
+    fontSize: 26,
+    color: '#111827',
+    lineHeight: 38,
+    includeFontPadding: false,
   },
   emptyAnalyticsValue: {
     color: '#D0D4E0',
-    fontSize: 32,
+    fontSize: 26,
   },
+  // Figma: analytics sub uses Jost 11px, color #9CA3AF
   analyticsSub: {
-    fontFamily: fontFamily.body,
-    fontSize: 12,
-    color: '#9AA2B8',
+    fontFamily: 'Jost_400Regular',
+    fontSize: 11,
+    color: '#9CA3AF',
   },
 });

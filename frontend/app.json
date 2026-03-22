@@ -59,7 +59,8 @@
           "sounds": [],
           "color": "#30410D"
         }
-      ]
+      ],
+      "expo-font"
     ]
   }
 }
