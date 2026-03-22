@@ -296,17 +296,13 @@ export function ProfileScreen() {
                   <Text style={styles.reactionsEveryLabel}>
                     Every. Single. Reaction. ({allReactions.length})
                   </Text>
-                  {allReactions.map((r, i) => (
-                    <View key={r.reaction_id} style={styles.reactionsRow}>
-                      <Text style={styles.reactionsIndex}>#{i + 1}</Text>
-                      <Text style={styles.reactionsBigEmoji}>
+                  <View style={styles.reactionsWind}>
+                    {allReactions.map((r) => (
+                      <Text key={r.reaction_id} style={styles.reactionsWindEmoji}>
                         {EMOJI_DISPLAY[r.emoji as ReactionEmoji] ?? r.emoji}
                       </Text>
-                      <Text style={styles.reactionsTimestamp}>
-                        at {Math.floor(r.timestamp_s / 60)}:{String(Math.round(r.timestamp_s % 60)).padStart(2, '0')}
-                      </Text>
-                    </View>
-                  ))}
+                    ))}
+                  </View>
                   <View style={styles.reactionsBottom}>
                     <Text style={styles.reactionsBottomText}>
                       You scrolled through {allReactions.length} reaction{allReactions.length !== 1 ? 's' : ''}. Impressive dedication.
@@ -572,28 +568,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     textAlign: 'center',
   },
-  reactionsRow: {
+  reactionsWind: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EDEEE8',
+    flexWrap: 'wrap',
   },
-  reactionsIndex: {
-    fontFamily: fontFamily.body,
-    fontSize: 13,
-    color: '#B8BFAB',
-    width: 48,
-  },
-  reactionsBigEmoji: {
-    fontSize: 36,
-  },
-  reactionsTimestamp: {
-    fontFamily: fontFamily.body,
-    fontSize: 14,
-    color: '#8E95A8',
-    marginLeft: 'auto',
+  reactionsWindEmoji: {
+    fontSize: 32,
+    lineHeight: 40,
   },
   reactionsBottom: {
     paddingTop: spacing.xxl,
