@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.api.clips import router as clips_router
 from app.api.jobs import router as jobs_router
+from app.api.notifications import router as notifications_router
 from app.api.posts import router as posts_router
 from app.api.profiles import router as profiles_router
 from app.api.stats import router as stats_router
@@ -23,6 +24,7 @@ app.include_router(clips_router, prefix="/v1")
 app.include_router(posts_router, prefix="/v1")
 app.include_router(profiles_router, prefix="/v1")
 app.include_router(stats_router, prefix="/v1")
+app.include_router(notifications_router, prefix="/v1")
 
 
 @app.exception_handler(404)

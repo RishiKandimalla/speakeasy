@@ -5,16 +5,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 
+import { NotificationBell } from '../components/NotificationBell';
 import { SlideOutMenu } from '../components/SlideOutMenu';
 import {
   getMyProfile,
   getProfile,
+  getReactionSummary,
   listJobs,
   listUserPosts,
   publishPost,
   type FeedPostResponse,
   type JobSummary,
   type ProfileData,
+  type ReactionSummary,
 } from '../lib/api';
 import type { RootTabParamList } from '../navigation/types';
 import { authColors, fontFamily, radius, spacing } from '../theme';
@@ -53,6 +56,7 @@ export function ProfileScreen() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [jobs, setJobs] = useState<JobSummary[]>([]);
   const [publicPosts, setPublicPosts] = useState<FeedPostResponse[]>([]);
+  const [reactionSummaries, setReactionSummaries] = useState<Record<string, ReactionSummary>>({});
   const [loading, setLoading] = useState(true);
   const [publishingJobId, setPublishingJobId] = useState<string | null>(null);
 
@@ -70,11 +74,27 @@ export function ProfileScreen() {
           const targetUserId = routeUserId ?? me.user_id;
           const own = targetUserId === me.user_id;
           if (own) {
-            const userJobs = await listJobs(50);
+            const [userJobs, ownPosts] = await Promise.all([
+              listJobs(50),
+              listUserPosts(targetUserId, 50),
+            ]);
             if (cancelled) return;
             setProfile(me);
             setJobs(userJobs.filter((job) => job.status === 'completed'));
             setPublicPosts([]);
+
+            const summaries: Record<string, ReactionSummary> = {};
+            await Promise.all(
+              ownPosts.map(async (p) => {
+                try {
+                  const s = await getReactionSummary(p.post_id);
+                  summaries[p.post_id] = s;
+                } catch {
+                  // ignore individual failures
+                }
+              }),
+            );
+            if (!cancelled) setReactionSummaries(summaries);
           } else {
             const [targetProfile, posts] = await Promise.all([
               getProfile(targetUserId),
@@ -84,6 +104,7 @@ export function ProfileScreen() {
             setProfile(targetProfile);
             setPublicPosts(posts);
             setJobs([]);
+            setReactionSummaries({});
           }
         } catch (e) {
           if (!cancelled) {
@@ -123,6 +144,18 @@ export function ProfileScreen() {
 
   const headerTitle = useMemo(() => (isOwnProfile ? 'My posts' : 'Public posts'), [isOwnProfile]);
 
+  const aggregateReactions = useMemo(() => {
+    const summaryList = Object.values(reactionSummaries);
+    if (!summaryList.length) return null;
+    let total = 0;
+    let uniqueReactors = 0;
+    for (const s of summaryList) {
+      total += s.total_reactions;
+      uniqueReactors += s.unique_reactors;
+    }
+    return { total, uniqueReactors };
+  }, [reactionSummaries]);
+
   return (
     <>
       <ScrollView
@@ -138,7 +171,7 @@ export function ProfileScreen() {
           <View style={styles.headerIcons}>
             {isOwnProfile && (
               <Pressable hitSlop={8} onPress={() => navigation.navigate('Home', { screen: 'Notifications' })}>
-                <Ionicons name="notifications-outline" size={22} color="#1F2A16" />
+                <NotificationBell />
               </Pressable>
             )}
             {isOwnProfile && (
@@ -172,6 +205,23 @@ export function ProfileScreen() {
             </View>
 
             <Text style={styles.name}>{username}</Text>
+
+            {isOwnProfile && aggregateReactions && aggregateReactions.total > 0 && (
+              <View style={styles.reactionSummaryRow}>
+                <View style={styles.reactionSummaryPill}>
+                  <Ionicons name="heart-outline" size={14} color="#678A45" />
+                  <Text style={styles.reactionSummaryText}>
+                    {aggregateReactions.total} reaction{aggregateReactions.total !== 1 ? 's' : ''}
+                  </Text>
+                </View>
+                <View style={styles.reactionSummaryPill}>
+                  <Ionicons name="people-outline" size={14} color="#678A45" />
+                  <Text style={styles.reactionSummaryText}>
+                    {aggregateReactions.uniqueReactors} unique reactor{aggregateReactions.uniqueReactors !== 1 ? 's' : ''}
+                  </Text>
+                </View>
+              </View>
+            )}
 
             {isOwnProfile && (
               <View style={styles.actionRow}>
@@ -342,6 +392,25 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.bodySemiBold,
     fontSize: 32,
     color: '#1F2A16',
+  },
+  reactionSummaryRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  reactionSummaryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#EFF3E7',
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  reactionSummaryText: {
+    fontFamily: fontFamily.bodyMedium,
+    fontSize: 12,
+    color: '#4D5A37',
   },
   actionRow: {
     flexDirection: 'row',

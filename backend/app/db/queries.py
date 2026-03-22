@@ -496,3 +496,87 @@ def get_reactions_for_post(post_id: str) -> list[dict]:
         .execute()
     )
     return result.data or []
+
+
+def has_user_reacted_to_post(post_id: str, user_id: str) -> bool:
+    db = get_client()
+    result = (
+        db.table("post_reactions")
+        .select("id", count="exact")
+        .eq("post_id", post_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return (result.count or 0) > 0
+
+
+def get_reaction_summary(post_id: str) -> dict:
+    """Returns emoji counts, total reactions, and unique reactor count for a post."""
+    db = get_client()
+    rows = (
+        db.table("post_reactions")
+        .select("emoji, user_id")
+        .eq("post_id", post_id)
+        .execute()
+    ).data or []
+
+    emoji_counts: dict[str, int] = {}
+    unique_users: set[str] = set()
+    for row in rows:
+        emoji_counts[row["emoji"]] = emoji_counts.get(row["emoji"], 0) + 1
+        unique_users.add(row["user_id"])
+
+    return {
+        "emoji_counts": emoji_counts,
+        "total_reactions": len(rows),
+        "unique_reactors": len(unique_users),
+    }
+
+
+# ── Notifications ─────────────────────────────────────────────────────────────
+
+def create_notification(user_id: str, post_id: str, emoji: str | None = None) -> dict:
+    db = get_client()
+    result = db.table("notifications").insert({
+        "user_id": user_id,
+        "post_id": post_id,
+        "type": "reaction",
+        "emoji": emoji,
+    }).execute()
+    return result.data[0]
+
+
+def list_notifications(user_id: str, limit: int = 50, offset: int = 0) -> list[dict]:
+    db = get_client()
+    result = (
+        db.table("notifications")
+        .select("*")
+        .eq("user_id", user_id)
+        .order("created_at", desc=True)
+        .range(offset, offset + limit - 1)
+        .execute()
+    )
+    return result.data or []
+
+
+def mark_notifications_read(user_id: str, notification_ids: list[str]) -> None:
+    db = get_client()
+    (
+        db.table("notifications")
+        .update({"read": True})
+        .eq("user_id", user_id)
+        .in_("id", notification_ids)
+        .execute()
+    )
+
+
+def count_unread_notifications(user_id: str) -> int:
+    db = get_client()
+    result = (
+        db.table("notifications")
+        .select("id", count="exact")
+        .eq("user_id", user_id)
+        .eq("read", False)
+        .execute()
+    )
+    return result.count or 0

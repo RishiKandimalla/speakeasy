@@ -1,19 +1,67 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, ListRenderItemInfo, StyleSheet, Text, View, ViewToken, useWindowDimensions } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import {
+  ActivityIndicator,
+  Animated,
+  Easing,
+  FlatList,
+  ListRenderItemInfo,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  ViewToken,
+  useWindowDimensions,
+} from 'react-native';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useVideoPlayer, VideoView } from 'expo-video';
 
 import { getCachedClipUri, prefetchClip } from '../lib/clipCache';
-import { ClipResponse, FeedPostResponse, listClips, listPublicFeed } from '../lib/api';
-import { colors, radius, spacing, typography } from '../theme';
+import {
+  addReaction,
+  ClipResponse,
+  EMOJI_DISPLAY,
+  FeedPostResponse,
+  listClips,
+  listPublicFeed,
+  REACTION_EMOJIS,
+  type ReactionEmoji,
+} from '../lib/api';
+import { colors, fontFamily, radius, spacing, typography } from '../theme';
+import type { Word } from '../types/analysis';
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 type FeedItem = FeedPostResponse & {
   backgroundClip: ClipResponse | null;
   instanceKey: string;
 };
 
+type TranscriptChunk = {
+  words: Word[];
+  text: string;
+  start: number;
+  end: number;
+};
+
+type ParsedTranscript = { text: string; words: Word[] } | null;
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
 const BATCH_SIZE = 20;
+const MAX_WORDS_PER_CHUNK = 14;
+const POLL_INTERVAL_MS = 100;
+const CURSOR_BLINK_MS = 530;
+const CAPTION_FONT_SIZE = 24;
+const CAPTION_LINE_HEIGHT = 36;
+
+// ---------------------------------------------------------------------------
+// Utilities
+// ---------------------------------------------------------------------------
 
 function shuffleItems<T>(items: T[]): T[] {
   const shuffled = [...items];
@@ -23,6 +71,276 @@ function shuffleItems<T>(items: T[]): T[] {
   }
   return shuffled;
 }
+
+function isSentenceEnd(word: string): boolean {
+  return /[.!?]$/.test(word);
+}
+
+function buildChunks(words: Word[]): TranscriptChunk[] {
+  if (!words.length) return [];
+  const chunks: TranscriptChunk[] = [];
+  let buf: Word[] = [];
+
+  const flush = () => {
+    if (!buf.length) return;
+    chunks.push({
+      words: buf,
+      text: buf.map((w) => w.word).join(' '),
+      start: buf[0].start,
+      end: buf[buf.length - 1].end,
+    });
+    buf = [];
+  };
+
+  for (const w of words) {
+    buf.push(w);
+    if (isSentenceEnd(w.word)) {
+      if (buf.length > MAX_WORDS_PER_CHUNK) {
+        // Split oversized sentence at midpoint
+        const mid = Math.ceil(buf.length / 2);
+        const first = buf.slice(0, mid);
+        const second = buf.slice(mid);
+        chunks.push({
+          words: first,
+          text: first.map((x) => x.word).join(' '),
+          start: first[0].start,
+          end: first[first.length - 1].end,
+        });
+        chunks.push({
+          words: second,
+          text: second.map((x) => x.word).join(' '),
+          start: second[0].start,
+          end: second[second.length - 1].end,
+        });
+        buf = [];
+      } else {
+        flush();
+      }
+    } else if (buf.length >= MAX_WORDS_PER_CHUNK) {
+      flush();
+    }
+  }
+  flush();
+  return chunks;
+}
+
+function parseTranscript(json: Record<string, unknown>): ParsedTranscript {
+  if (!json || typeof json !== 'object') return null;
+  const words = json.words;
+  if (!Array.isArray(words) || !words.length) return null;
+  return json as unknown as { text: string; words: Word[] };
+}
+
+// ---------------------------------------------------------------------------
+// BlinkingCursor
+// ---------------------------------------------------------------------------
+
+function BlinkingCursor() {
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: CURSOR_BLINK_MS,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: CURSOR_BLINK_MS,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [opacity]);
+
+  return (
+    <Animated.Text style={[styles.cursor, { opacity }]}>|</Animated.Text>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// CaptionOverlay
+// ---------------------------------------------------------------------------
+
+const FADE_RATIO = 0.5;
+
+function PastChunk({ chunk, containerRef, containerH }: {
+  chunk: TranscriptChunk;
+  containerRef: React.RefObject<View | null>;
+  containerH: number;
+}) {
+  const rowRef = useRef<View>(null);
+  const [opacity, setOpacity] = useState(0.55);
+
+  useEffect(() => {
+    if (!containerH || !rowRef.current || !containerRef.current) return;
+    rowRef.current.measureLayout(containerRef.current as any, (_x, y) => {
+      const fadeZone = containerH * FADE_RATIO;
+      if (y >= fadeZone) {
+        setOpacity(0.55);
+      } else if (y <= 0) {
+        setOpacity(0);
+      } else {
+        setOpacity(0.55 * (y / fadeZone));
+      }
+    }, () => {});
+  });
+
+  return (
+    <View ref={rowRef} style={[styles.chunkRow, { opacity }]}>
+      <View style={styles.chunkBg}>
+        <Text style={[styles.chunkText, styles.pastChunkText]}>
+          {chunk.text}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function CaptionOverlay({
+  transcript,
+  currentTime,
+}: {
+  transcript: ParsedTranscript;
+  currentTime: number;
+}) {
+  const chunks = useMemo(
+    () => (transcript ? buildChunks(transcript.words) : []),
+    [transcript],
+  );
+  const containerRef = useRef<View>(null);
+  const [containerH, setContainerH] = useState(0);
+
+  if (!chunks.length) return null;
+
+  let activeIdx = chunks.findIndex(
+    (c) => currentTime >= c.start && currentTime < c.end,
+  );
+  if (activeIdx < 0) {
+    for (let i = chunks.length - 1; i >= 0; i -= 1) {
+      if (currentTime >= chunks[i].start) {
+        activeIdx = i;
+        break;
+      }
+    }
+  }
+  if (activeIdx < 0) return null;
+
+  const activeChunk = chunks[activeIdx];
+
+  const visibleWordCount = activeChunk.words.filter(
+    (w) => w.start <= currentTime,
+  ).length;
+
+  const pastChunks = chunks.slice(0, activeIdx);
+
+  return (
+    <View
+      ref={containerRef}
+      style={styles.captionContainer}
+      pointerEvents="none"
+      onLayout={(e) => setContainerH(e.nativeEvent.layout.height)}
+    >
+      <View style={styles.captionInner}>
+        {pastChunks.map((chunk) => (
+          <PastChunk
+            key={chunk.start}
+            chunk={chunk}
+            containerRef={containerRef}
+            containerH={containerH}
+          />
+        ))}
+
+        <View style={styles.chunkRow}>
+          <View style={styles.chunkBg}>
+            <Text style={styles.chunkText}>
+              {activeChunk.words.slice(0, visibleWordCount).map((w) => w.word).join(' ')}
+              {visibleWordCount > 0 && visibleWordCount < activeChunk.words.length ? ' ' : ''}
+              {visibleWordCount > 0 && <BlinkingCursor />}
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ReactionBar
+// ---------------------------------------------------------------------------
+
+function ReactionButton({
+  emoji,
+  onPress,
+}: {
+  emoji: ReactionEmoji;
+  onPress: () => void;
+}) {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const handlePress = () => {
+    Animated.sequence([
+      Animated.timing(scale, {
+        toValue: 1.45,
+        duration: 120,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.timing(scale, {
+        toValue: 1,
+        duration: 180,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: true,
+      }),
+    ]).start();
+    onPress();
+  };
+
+  return (
+    <Pressable onPress={handlePress} hitSlop={6}>
+      <Animated.View style={[styles.reactionBtn, { transform: [{ scale }] }]}>
+        <Text style={styles.reactionEmoji}>{EMOJI_DISPLAY[emoji]}</Text>
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+function ReactionBar({
+  postId,
+  currentTime,
+}: {
+  postId: string;
+  currentTime: number;
+}) {
+  const handleReaction = useCallback(
+    (emoji: ReactionEmoji) => {
+      void addReaction(postId, emoji, currentTime).catch(() => {});
+    },
+    [postId, currentTime],
+  );
+
+  return (
+    <View style={styles.reactionBar}>
+      {REACTION_EMOJIS.map((emoji) => (
+        <ReactionButton
+          key={emoji}
+          emoji={emoji}
+          onPress={() => handleReaction(emoji)}
+        />
+      ))}
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// FeedBackgroundVideo
+// ---------------------------------------------------------------------------
 
 function FeedBackgroundVideo({
   clip,
@@ -46,9 +364,7 @@ function FeedBackgroundVideo({
           setSourceUri(localUri);
         }
       })
-      .catch(() => {
-        // Ignore cache errors and keep using remote URL.
-      });
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -62,8 +378,12 @@ function FeedBackgroundVideo({
     }
   }, [player, shouldPlay]);
 
-  return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" />;
+  return <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />;
 }
+
+// ---------------------------------------------------------------------------
+// FeedVideoItem
+// ---------------------------------------------------------------------------
 
 function FeedVideoItem({
   item,
@@ -78,28 +398,72 @@ function FeedVideoItem({
     p.loop = true;
   });
 
+  const [currentTime, setCurrentTime] = useState(0);
+
   useEffect(() => {
     if (shouldPlay) {
       audioPlayer.play();
     } else {
       audioPlayer.pause();
+      setCurrentTime(0);
     }
   }, [audioPlayer, shouldPlay]);
 
+  // Poll audio position for caption sync
+  useEffect(() => {
+    if (!shouldPlay) return;
+    const id = setInterval(() => {
+      setCurrentTime(audioPlayer.currentTime ?? 0);
+    }, POLL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [audioPlayer, shouldPlay]);
+
+  const transcript = useMemo(
+    () => parseTranscript(item.transcript_json),
+    [item.transcript_json],
+  );
+
+  const initial = item.username ? item.username.charAt(0).toUpperCase() : '?';
+
   return (
     <View style={[styles.page, { height }]}>
-      {item.backgroundClip ? <FeedBackgroundVideo clip={item.backgroundClip} shouldPlay={shouldPlay} /> : null}
-      <View style={styles.videoOverlay}>
-        <Text style={styles.chipText}>@{item.username}</Text>
+      {item.backgroundClip ? (
+        <FeedBackgroundVideo clip={item.backgroundClip} shouldPlay={shouldPlay} />
+      ) : null}
+
+      {/* Username header – top-left */}
+      <View style={styles.userHeader}>
+        <View style={styles.avatarCircle}>
+          <Text style={styles.avatarLetter}>{initial}</Text>
+        </View>
+        <View>
+          <Text style={styles.displayName}>{item.username}</Text>
+          <Text style={styles.handleText}>@{item.username}</Text>
+        </View>
       </View>
+
+      {/* Reaction bar – right side */}
+      <ReactionBar postId={item.post_id} currentTime={currentTime} />
+
+      {/* Live captions */}
+      <CaptionOverlay transcript={transcript} currentTime={currentTime} />
     </View>
   );
 }
 
+// ---------------------------------------------------------------------------
+// FeedScreen
+// ---------------------------------------------------------------------------
+
 export function FeedScreen() {
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
-  const pageHeight = useMemo(() => Math.max(windowHeight - insets.bottom, 1), [windowHeight, insets.bottom]);
+  const pageHeight = useMemo(
+    () => Math.max(windowHeight - insets.bottom, 1),
+    [windowHeight, insets.bottom],
+  );
+
+  const isFocused = useIsFocused();
 
   const [sourcePosts, setSourcePosts] = useState<FeedPostResponse[]>([]);
   const [sourceClips, setSourceClips] = useState<ClipResponse[]>([]);
@@ -192,9 +556,9 @@ export function FeedScreen() {
 
   const renderItem = useCallback(
     ({ item, index }: ListRenderItemInfo<FeedItem>) => (
-      <FeedVideoItem item={item} shouldPlay={index === visibleIndex} height={pageHeight} />
+      <FeedVideoItem item={item} shouldPlay={isFocused && index === visibleIndex} height={pageHeight} />
     ),
-    [pageHeight, visibleIndex],
+    [isFocused, pageHeight, visibleIndex],
   );
 
   return (
@@ -242,6 +606,10 @@ export function FeedScreen() {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Styles
+// ---------------------------------------------------------------------------
+
 const styles = StyleSheet.create({
   root: {
     flex: 1,
@@ -251,22 +619,109 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#000',
   },
-  videoOverlay: {
+
+  // User header (top-left)
+  userHeader: {
     position: 'absolute',
+    top: 66,
     left: spacing.xl,
-    bottom: spacing.xxl * 2,
-    backgroundColor: colors.overlay,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 3,
+    gap: spacing.md,
   },
-  chipText: {
-    ...typography.caption,
-    color: colors.text,
-    fontWeight: '600',
+  avatarCircle: {
+    width: 45,
+    height: 45,
+    borderRadius: 9999,
+    backgroundColor: 'rgba(72,72,72,0.34)',
+    borderWidth: 1.27,
+    borderColor: '#a8a8a8',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  avatarLetter: {
+    fontSize: 22,
+    color: '#fff',
+    fontFamily: fontFamily.display,
+  },
+  displayName: {
+    fontSize: 20,
+    color: '#fff',
+    fontFamily: fontFamily.display,
+    lineHeight: 26,
+  },
+  handleText: {
+    fontSize: 13,
+    color: '#fff',
+    fontFamily: fontFamily.body,
+    lineHeight: 18,
+  },
+
+  // Caption overlay
+  captionContainer: {
+    position: 'absolute',
+    left: spacing.xxl,
+    right: spacing.xxl,
+    top: 130,
+    bottom: 160,
+    zIndex: 2,
+    overflow: 'hidden',
+  },
+  captionInner: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  chunkRow: {
+    marginBottom: spacing.lg,
+  },
+  chunkBg: {
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: radius.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    alignSelf: 'flex-start',
+  },
+  chunkText: {
+    fontSize: CAPTION_FONT_SIZE,
+    fontWeight: '700',
+    fontFamily: fontFamily.display,
+    color: '#fff',
+    lineHeight: CAPTION_LINE_HEIGHT,
+  },
+  pastChunkText: {
+    color: 'rgba(255,255,255,0.55)',
+  },
+  cursor: {
+    fontSize: CAPTION_FONT_SIZE,
+    fontWeight: '200',
+    fontFamily: fontFamily.body,
+    color: '#fff',
+    lineHeight: CAPTION_LINE_HEIGHT,
+  },
+
+  // Reaction bar (right side)
+  reactionBar: {
+    position: 'absolute',
+    right: spacing.lg,
+    bottom: 170,
+    zIndex: 4,
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  reactionBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 9999,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reactionEmoji: {
+    fontSize: 24,
+  },
+
+  // Loading / error / empty states
   center: {
     flex: 1,
     alignItems: 'center',

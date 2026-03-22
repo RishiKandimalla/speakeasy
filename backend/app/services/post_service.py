@@ -1,8 +1,10 @@
 from fastapi import HTTPException
 from app.db import queries
-from app.models.post import PublishPostResponse, FeedPostResponse, ReactionResponse
+from app.models.post import PublishPostResponse, FeedPostResponse, ReactionResponse, ReactionSummaryResponse
 from app.services import storage_service
 from app.services.profile_service import get_or_create_profile
+
+ALLOWED_EMOJIS = {"fire", "heart", "laugh", "clap", "mindblown", "sad"}
 
 
 def publish_post(job_id: str, user_id: str) -> PublishPostResponse:
@@ -90,13 +92,38 @@ def mark_viewed(user_id: str, post_id: str) -> None:
 
 
 def add_reaction(post_id: str, user_id: str, emoji: str, timestamp_s: float) -> ReactionResponse:
+    if emoji not in ALLOWED_EMOJIS:
+        raise HTTPException(status_code=422, detail=f"Invalid emoji. Allowed: {', '.join(sorted(ALLOWED_EMOJIS))}")
+
     post = queries.get_post(post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
+
+    is_first = not queries.has_user_reacted_to_post(post_id, user_id)
+
     reaction = queries.create_reaction(post_id=post_id, user_id=user_id, emoji=emoji, timestamp_s=timestamp_s)
+
+    if is_first:
+        owner_id = post["user_id"]
+        if owner_id != user_id:
+            queries.create_notification(user_id=owner_id, post_id=post_id, emoji=emoji)
+
     return ReactionResponse(
         reaction_id=reaction["id"],
         post_id=post_id,
         emoji=reaction["emoji"],
         timestamp_s=reaction["timestamp_s"],
+    )
+
+
+def get_reaction_summary(post_id: str) -> ReactionSummaryResponse:
+    post = queries.get_post(post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    summary = queries.get_reaction_summary(post_id)
+    return ReactionSummaryResponse(
+        post_id=post_id,
+        emoji_counts=summary["emoji_counts"],
+        total_reactions=summary["total_reactions"],
+        unique_reactors=summary["unique_reactors"],
     )

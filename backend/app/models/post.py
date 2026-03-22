@@ -31,3 +31,10 @@ class ReactionResponse(BaseModel):
 class PostReactionsResponse(BaseModel):
     post_id: str
     reactions: list[ReactionResponse]
+
+
+class ReactionSummaryResponse(BaseModel):
+    post_id: str
+    emoji_counts: dict[str, int]
+    total_reactions: int
+    unique_reactors: int

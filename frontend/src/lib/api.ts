@@ -226,3 +226,74 @@ export async function listClips(category: ClipCategory = 'both'): Promise<ClipRe
   });
   return parseJsonOrThrow(res) as Promise<ClipResponse[]>;
 }
+
+// ── Reactions ──────────────────────────────────────────────────────────────────
+
+export const REACTION_EMOJIS = ['fire', 'heart', 'laugh', 'clap', 'mindblown', 'sad'] as const;
+export type ReactionEmoji = (typeof REACTION_EMOJIS)[number];
+
+export const EMOJI_DISPLAY: Record<ReactionEmoji, string> = {
+  fire: '🔥',
+  heart: '❤️',
+  laugh: '😂',
+  clap: '👏',
+  mindblown: '🤯',
+  sad: '😢',
+};
+
+export type ReactionSummary = {
+  post_id: string;
+  emoji_counts: Record<string, number>;
+  total_reactions: number;
+  unique_reactors: number;
+};
+
+export async function addReaction(postId: string, emoji: string, timestampS: number): Promise<void> {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/v1/posts/${postId}/reactions`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ emoji, timestamp_s: timestampS }),
+  });
+  await parseJsonOrThrow(res);
+}
+
+export async function getReactionSummary(postId: string): Promise<ReactionSummary> {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/v1/posts/${postId}/reactions/summary`, { headers });
+  return parseJsonOrThrow(res) as Promise<ReactionSummary>;
+}
+
+// ── Notifications ──────────────────────────────────────────────────────────────
+
+export type NotificationItem = {
+  notification_id: string;
+  post_id: string;
+  type: string;
+  emoji: string | null;
+  read: boolean;
+  created_at: string;
+};
+
+export async function listNotifications(limit = 50, offset = 0): Promise<NotificationItem[]> {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/v1/notifications?limit=${limit}&offset=${offset}`, { headers });
+  return parseJsonOrThrow(res) as Promise<NotificationItem[]>;
+}
+
+export async function markNotificationsRead(ids: string[]): Promise<void> {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/v1/notifications/read`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ notification_ids: ids }),
+  });
+  await parseJsonOrThrow(res);
+}
+
+export async function getUnreadNotificationCount(): Promise<number> {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/v1/notifications/unread-count`, { headers });
+  const data = (await parseJsonOrThrow(res)) as { count: number };
+  return data.count;
+}

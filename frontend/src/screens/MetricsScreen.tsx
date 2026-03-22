@@ -4,6 +4,7 @@ import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
+import { NotificationBell } from '../components/NotificationBell';
 import { SlideOutMenu } from '../components/SlideOutMenu';
 import { authColors, fontFamily, radius, spacing } from '../theme';
 import { getMyStats, listJobs, type JobSummary, type UserStats } from '../lib/api';
@@ -195,7 +196,7 @@ export function MetricsScreen() {
           <Image source={require('../../assets/images/speakeasy_name.png')} style={styles.wordmark} resizeMode="contain" />
           <View style={styles.headerIcons}>
             <Pressable hitSlop={8} onPress={() => navigation.navigate('Home', { screen: 'Notifications' })}>
-              <Ionicons name="notifications-outline" size={22} color="#1F2A16" />
+              <NotificationBell />
             </Pressable>
             <Pressable hitSlop={8} onPress={() => setMenuVisible(true)}>
               <Ionicons name="menu-outline" size={24} color="#1F2A16" />

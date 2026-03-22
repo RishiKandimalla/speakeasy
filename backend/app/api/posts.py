@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 from app.auth.deps import get_current_user_id
-from app.models.post import PublishPostResponse, FeedPostResponse, ReactionRequest, ReactionResponse, PostReactionsResponse
+from app.models.post import PublishPostResponse, FeedPostResponse, ReactionRequest, ReactionResponse, PostReactionsResponse, ReactionSummaryResponse
 from app.services import post_service
 
 router = APIRouter()
@@ -37,6 +37,11 @@ def get_public_feed(
 @router.post("/posts/{post_id}/view", status_code=204)
 def mark_viewed(post_id: str, user_id: str = Depends(get_current_user_id)):
     post_service.mark_viewed(user_id=user_id, post_id=post_id)
+
+
+@router.get("/posts/{post_id}/reactions/summary", response_model=ReactionSummaryResponse)
+def get_reaction_summary(post_id: str, user_id: str = Depends(get_current_user_id)):
+    return post_service.get_reaction_summary(post_id)
 
 
 @router.get("/posts/{post_id}/reactions", response_model=PostReactionsResponse)
