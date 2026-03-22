@@ -1,0 +1,12 @@
+Anthropic's models for agentic coding (particularly Opus 4.6 (non-thinking) and Sonnet)
+Cursor's new Composer 2 model
+Claude Code and Cursor for agentic frameworks 
+Composer 1.5 for sub-agentic searching/analysis workflows, but no code writing
+Lots of research behind our ideas:
+Heeren, A., Ceschi, G., Valentiner, D. P., Dethier, V., & Philippot, P. (2013). Assessing public speaking fear with the short form of the Personal Report of Confidence as a Speaker scale: confirmatory factor analyses among a French-speaking community sample. Neuropsychiatric disease and treatment, 9, 609–618. https://doi.org/10.2147/NDT.S43097
+https://blogs.ifas.ufl.edu/orangeco/2022/01/21/public-speaking-getting-beyond-the-fear-through-the-three-ps/
+Rumbough, T. B. (1999). The effects of impromptu speech exercises on reducing trait and situational communication apprehension. New Jersey Journal of Communication, 7(2), 206–215. https://doi.org/10.1080/15456879909367368
+Takac M, Collett J, Blom KJ, Conduit R, Rehm I, De Foe A (2019) Public speaking anxiety decreases within repeated virtual reality training sessions. PLoS ONE 14(5): e0216288. https://doi.org/10.1371/journal.pone.0216288
+Supplementary Studies: , Harris, Kemmerling, & North, 2002; Pertaub, Slater, &Barker, 2001
+Van Ginkel S, Ruiz D, Mononen A, Karaman C, de Keijzer A, Sitthiworachart J. The impact of computer-mediated immediate feedback on developing oral presentation skills: An exploratory study in virtual reality. J Comput Assist Learn. 2020; 36: 412–422. https://doi.org/10.1111/jcal.12424
+Why brief practice is effective: repetition across several low-stakes trials (Hiedeman & Laury, 2021), immediate/rapid feedback (Van Ginkel et al, 2019), self-review through video or audio playback (Bourhis and Allen, 2018), explicit goals for the next attempt (Mortaji, 2018)
