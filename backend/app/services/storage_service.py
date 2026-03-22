@@ -9,7 +9,7 @@ def download_video(bucket: str, path: str, dest_path: str) -> None:
 
 def upload_file(bucket: str, path: str, local_path: str) -> None:
     with open(local_path, "rb") as f:
-        get_client().storage.from_(bucket).upload(path, f.read())
+        get_client().storage.from_(bucket).upload(path, f.read(), file_options={"upsert": "true"})
 
 
 def upload_from_bytes(bucket: str, path: str, data: bytes, content_type: str) -> None:

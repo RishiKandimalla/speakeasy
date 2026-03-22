@@ -7,3 +7,5 @@ pydantic-settings
 httpx
 python-multipart
 PyJWT[crypto]
+assemblyai
+google-generativeai
