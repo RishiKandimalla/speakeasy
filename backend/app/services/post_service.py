@@ -1,0 +1,85 @@
+from fastapi import HTTPException
+from app.db import queries
+from app.models.post import PublishPostResponse, FeedPostResponse, ReactionResponse
+from app.services import storage_service
+from app.services.profile_service import get_or_create_profile
+
+
+def publish_post(job_id: str, user_id: str) -> PublishPostResponse:
+    job = queries.get_job(job_id, user_id=user_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job["status"] != "completed":
+        raise HTTPException(status_code=409, detail="Job is not completed")
+
+    outputs = queries.get_job_outputs(job_id) or {}
+    audio_bucket = outputs.get("audio_bucket")
+    audio_path = outputs.get("audio_path")
+    if not audio_bucket or not audio_path:
+        raise HTTPException(status_code=409, detail="Job audio output not found")
+
+    analysis = queries.get_job_analysis(job_id) or {}
+    transcript_json = analysis.get("transcript_json")
+
+    # Ensure the user has a profile before posting
+    get_or_create_profile(user_id)
+
+    post = queries.create_post(
+        job_id=job_id,
+        user_id=user_id,
+        audio_bucket=audio_bucket,
+        audio_path=audio_path,
+        transcript_json=transcript_json,
+    )
+
+    audio_url = storage_service.get_signed_url(audio_bucket, audio_path)
+    return PublishPostResponse(post_id=post["id"], audio_url=audio_url)
+
+
+def _posts_to_response(posts: list[dict]) -> list[FeedPostResponse]:
+    result = []
+    for post in posts:
+        profile = queries.get_profile(post["user_id"])
+        username = profile["username"] if profile else "unknown"
+        audio_url = storage_service.get_signed_url(post["audio_bucket"], post["audio_path"])
+        result.append(FeedPostResponse(
+            post_id=post["id"],
+            username=username,
+            audio_url=audio_url,
+            transcript_json=post["transcript_json"] or {},
+            created_at=post["created_at"],
+        ))
+    return result
+
+
+def get_following_feed(user_id: str, limit: int = 20) -> list[FeedPostResponse]:
+    posts = queries.get_following_recent_posts(user_id=user_id, limit=limit)
+    return _posts_to_response(posts)
+
+
+def get_discovery_feed(user_id: str, limit: int = 10) -> list[FeedPostResponse]:
+    """Random recent posts, excluding own posts and already-viewed posts."""
+    viewed_ids = queries.get_viewed_post_ids(user_id)
+    posts = queries.get_random_recent_posts(
+        limit=limit,
+        exclude_user_id=user_id,
+        exclude_post_ids=viewed_ids or None,
+    )
+    return _posts_to_response(posts)
+
+
+def mark_viewed(user_id: str, post_id: str) -> None:
+    queries.record_post_view(user_id, post_id)
+
+
+def add_reaction(post_id: str, user_id: str, emoji: str, timestamp_s: float) -> ReactionResponse:
+    post = queries.get_post(post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    reaction = queries.create_reaction(post_id=post_id, user_id=user_id, emoji=emoji, timestamp_s=timestamp_s)
+    return ReactionResponse(
+        reaction_id=reaction["id"],
+        post_id=post_id,
+        emoji=reaction["emoji"],
+        timestamp_s=reaction["timestamp_s"],
+    )

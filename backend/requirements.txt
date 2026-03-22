@@ -11,3 +11,4 @@ assemblyai
 google-genai
 wordfreq
 hume
+coolname
