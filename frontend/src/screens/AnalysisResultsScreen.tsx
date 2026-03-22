@@ -186,12 +186,20 @@ export function AnalysisResultsScreen({
 
   const player = useVideoPlayer(videoUri ?? '', (p) => {
     p.loop = false;
+    p.allowsExternalPlayback = false;
   });
 
   const [currentTime, setCurrentTime] = useState(0);
   const [isLockedUntilEnd, setIsLockedUntilEnd] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const itemYMap = useRef<Record<number, number>>({});
+
+  // Auto-play video when screen loads
+  useEffect(() => {
+    if (videoUri && player) {
+      player.play();
+    }
+  }, [player, videoUri]);
 
   // Poll video position every 300ms
   useEffect(() => {

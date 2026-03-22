@@ -74,6 +74,13 @@ function scoreLabel(v: number) {
   return 'Needs work';
 }
 
+function scoreColor(v: number) {
+  if (v >= 85) return '#3D9E41';
+  if (v >= 70) return '#7AB33A';
+  if (v >= 55) return '#F5E47A';
+  return '#E05A35';
+}
+
 function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
 }
@@ -235,7 +242,7 @@ function HeroCard({ result }: { result: AnalysisResult }) {
   const energy = tone ? Math.round((tone.overall?.energy ?? 0) * 100) : null;
 
   return (
-    <View style={hero.card}>
+    <View style={[hero.card, { backgroundColor: scoreColor(overall) }]}>
       {/* Figma: "Clarity Score" label — Corben 400 14px rgba(41,41,41,0.80) */}
       <Text style={hero.scoreLabel}>Clarity Score</Text>
       {/* Figma: big score — Corben 400 72px #5A6B40 */}
