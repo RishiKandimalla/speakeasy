@@ -200,3 +200,196 @@ def list_clips(category: str | None = None) -> list[dict]:
                     }
                 )
         return rows
+
+
+# ── Profiles ──────────────────────────────────────────────────────────────────
+
+def get_profile(user_id: str) -> dict | None:
+    db = get_client()
+    result = db.table("profiles").select("*").eq("user_id", user_id).maybe_single().execute()
+    return result.data
+
+
+def create_profile(user_id: str, username: str) -> dict:
+    db = get_client()
+    result = db.table("profiles").insert({"user_id": user_id, "username": username}).execute()
+    return result.data[0]
+
+
+def list_all_usernames() -> list[str]:
+    db = get_client()
+    result = db.table("profiles").select("username").execute()
+    return [row["username"] for row in (result.data or [])]
+
+
+def count_followers(user_id: str) -> int:
+    db = get_client()
+    result = db.table("follows").select("follower_id", count="exact").eq("following_id", user_id).execute()
+    return result.count or 0
+
+
+def count_following(user_id: str) -> int:
+    db = get_client()
+    result = db.table("follows").select("following_id", count="exact").eq("follower_id", user_id).execute()
+    return result.count or 0
+
+
+def create_follow(follower_id: str, following_id: str) -> None:
+    db = get_client()
+    db.table("follows").upsert({"follower_id": follower_id, "following_id": following_id}).execute()
+
+
+def delete_follow(follower_id: str, following_id: str) -> None:
+    db = get_client()
+    db.table("follows").delete().eq("follower_id", follower_id).eq("following_id", following_id).execute()
+
+
+def is_following(follower_id: str, following_id: str) -> bool:
+    db = get_client()
+    result = (
+        db.table("follows")
+        .select("follower_id")
+        .eq("follower_id", follower_id)
+        .eq("following_id", following_id)
+        .maybe_single()
+        .execute()
+    )
+    return result.data is not None
+
+
+def list_following(user_id: str) -> list[dict]:
+    """Returns profiles of everyone the user follows."""
+    db = get_client()
+    follows = (
+        db.table("follows")
+        .select("following_id")
+        .eq("follower_id", user_id)
+        .execute()
+    )
+    following_ids = [row["following_id"] for row in (follows.data or [])]
+    if not following_ids:
+        return []
+    result = db.table("profiles").select("*").in_("user_id", following_ids).execute()
+    return result.data or []
+
+
+# ── Posts ─────────────────────────────────────────────────────────────────────
+
+def create_post(job_id: str, user_id: str, audio_bucket: str, audio_path: str, transcript_json: dict | None) -> dict:
+    db = get_client()
+    result = db.table("posts").insert({
+        "job_id": job_id,
+        "user_id": user_id,
+        "audio_bucket": audio_bucket,
+        "audio_path": audio_path,
+        "transcript_json": transcript_json,
+    }).execute()
+    return result.data[0]
+
+
+def get_post(post_id: str) -> dict | None:
+    db = get_client()
+    result = db.table("posts").select("*").eq("id", post_id).maybe_single().execute()
+    return result.data
+
+
+def get_following_recent_posts(user_id: str, limit: int = 20) -> list[dict]:
+    """Returns recent posts from users the given user follows."""
+    db = get_client()
+    follows = db.table("follows").select("following_id").eq("follower_id", user_id).execute()
+    following_ids = [row["following_id"] for row in (follows.data or [])]
+    if not following_ids:
+        return []
+    result = (
+        db.table("posts")
+        .select("*")
+        .in_("user_id", following_ids)
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    return result.data or []
+
+
+def get_random_recent_posts(limit: int = 10, exclude_user_id: str | None = None, exclude_post_ids: list[str] | None = None) -> list[dict]:
+    """Returns random unseen posts from the last 24 hours."""
+    import random
+    db = get_client()
+    query = (
+        db.table("posts")
+        .select("*")
+        .gte("created_at", "now() - interval '24 hours'")
+    )
+    if exclude_user_id:
+        query = query.neq("user_id", exclude_user_id)
+    if exclude_post_ids:
+        query = query.not_.in_("id", exclude_post_ids)
+    result = query.order("created_at", desc=True).limit(limit * 5).execute()
+    rows = result.data or []
+    random.shuffle(rows)
+    return rows[:limit]
+
+
+def record_post_view(user_id: str, post_id: str) -> None:
+    db = get_client()
+    db.table("post_views").upsert({"user_id": user_id, "post_id": post_id}).execute()
+
+
+def get_viewed_post_ids(user_id: str) -> list[str]:
+    db = get_client()
+    result = db.table("post_views").select("post_id").eq("user_id", user_id).execute()
+    return [row["post_id"] for row in (result.data or [])]
+
+
+# ── Reactions ─────────────────────────────────────────────────────────────────
+
+def create_reaction(post_id: str, user_id: str, emoji: str, timestamp_s: float) -> dict:
+    db = get_client()
+    result = db.table("post_reactions").insert({
+        "post_id": post_id,
+        "user_id": user_id,
+        "emoji": emoji,
+        "timestamp_s": timestamp_s,
+    }).execute()
+    return result.data[0]
+
+
+# ── User stats ────────────────────────────────────────────────────────────────
+
+def get_user_stats(user_id: str) -> dict | None:
+    db = get_client()
+    result = db.table("user_stats").select("*").eq("user_id", user_id).maybe_single().execute()
+    return result.data
+
+
+def upsert_user_stats(user_id: str, stats: dict) -> None:
+    db = get_client()
+    db.table("user_stats").upsert({"user_id": user_id, **stats}).execute()
+
+
+def count_completed_jobs_today(user_id: str) -> int:
+    """Returns how many jobs the user has completed today (UTC date)."""
+    db = get_client()
+    result = (
+        db.table("jobs")
+        .select("id", count="exact")
+        .eq("user_id", user_id)
+        .eq("status", "completed")
+        .gte("completed_at", "now()::date")
+        .execute()
+    )
+    return result.count or 0
+
+
+# ── Reactions ─────────────────────────────────────────────────────────────────
+
+def get_reactions_for_post(post_id: str) -> list[dict]:
+    db = get_client()
+    result = (
+        db.table("post_reactions")
+        .select("id, emoji, timestamp_s, created_at")
+        .eq("post_id", post_id)
+        .order("timestamp_s")
+        .execute()
+    )
+    return result.data or []

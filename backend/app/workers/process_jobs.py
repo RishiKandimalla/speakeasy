@@ -15,6 +15,7 @@ from app.services.analysis_service import analyze
 from app.services.captions_service import burn_captions
 from app.services.feedback_service import generate_feedback
 from app.services.tone_service import analyze_tone
+from app.services.stats_service import update_stats_for_job
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger(__name__)
@@ -145,10 +146,14 @@ def process_job(job_id: str) -> None:
         scores = compute_scores(metrics, tone)
         log.info(f"Scores: {scores}")
 
-        # Strip internal-only fields before storing metrics
+        # Strip internal-only fields and attach per-sentence tips
+        sentence_tips = feedback.pop("sentence_tips", [])
         stored_sentences = [
-            {k: v for k, v in s.items() if k not in ("start_index", "end_index")}
-            for s in metrics.get("sentences", [])
+            {
+                **{k: v for k, v in s.items() if k not in ("start_index", "end_index")},
+                **({"tip": sentence_tips[i]} if i < len(sentence_tips) else {}),
+            }
+            for i, s in enumerate(metrics.get("sentences", []))
         ]
         stored_metrics = {
             k: v for k, v in metrics.items()
@@ -190,6 +195,9 @@ def process_job(job_id: str) -> None:
 
         queries.mark_job_completed(job_id)
         log.info(f"Job {job_id} completed")
+
+        update_stats_for_job(job["user_id"], stored_metrics, scores, tone)
+        log.info(f"Stats updated for user {job['user_id']}")
     except Exception as e:
         log.error(f"Job {job_id} failed: {e}")
         queries.mark_job_failed(job_id, str(e))

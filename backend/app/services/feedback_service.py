@@ -57,8 +57,14 @@ def generate_feedback(transcript: dict, metrics: dict) -> dict:
         f"- Pace trend: {accel.get('trend')} (first half {accel.get('first_half_wpm')} WPM → second half {accel.get('second_half_wpm')} WPM)\n"
         f"- Grammar score: {metrics.get('grammar_score', 100)}/100\n"
         f"- Grammar issues found:\n{grammar_examples}\n\n"
+        "SENTENCE LIST (index: text | wpm | fillers | grammar issues):\n"
+        + "\n".join(
+            f"  {i}: \"{s['text']}\" | {s.get('wpm')} wpm | {s.get('filler_count',0)} fillers"
+            + (f" | grammar: {'; '.join(iss['issue'] for iss in s.get('grammar_issues',[]))}" if s.get('grammar_issues') else "")
+            for i, s in enumerate(sentences)
+        ) + "\n\n"
         "INSTRUCTIONS:\n"
-        "Return JSON with four fields: summary, strengths, improvements, tips.\n\n"
+        "Return JSON with five fields: summary, strengths, improvements, tips, sentence_tips.\n\n"
         "summary: 1-2 sentences max. Honest overall picture referencing 1-2 specific numbers.\n\n"
         "strengths: exactly 3 items. Each is one concise bullet (max 20 words) that names what they did well "
         "and cites the actual metric. No vague praise — if you can't point to a number, don't include it. "
@@ -69,7 +75,11 @@ def generate_feedback(transcript: dict, metrics: dict) -> dict:
         "tips: exactly 3 items. Each is one concise bullet (max 25 words) describing a specific in-the-moment "
         "vocal technique to fix an issue found in this session. "
         "No generic advice (no journaling, no daily practice, no mirror work). "
-        "Focus on breath control, pacing, transitions, sentence endings, word choice, or vocal mechanics."
+        "Focus on breath control, pacing, transitions, sentence endings, word choice, or vocal mechanics.\n\n"
+        "sentence_tips: an array with exactly one short string per sentence in the sentence list above "
+        "(same order, same count). Each tip is 5–10 words max — a single actionable note about that specific "
+        "sentence only (e.g. 'Too fast, breathe before this one.' or 'Cut the filler here.' or 'Strong delivery.'). "
+        "If a sentence has no issues, say something positive or write 'Good pacing here.'"
     )
     str_array = types.Schema(type=types.Type.ARRAY, items=types.Schema(type=types.Type.STRING))
     response = client.models.generate_content(
@@ -84,8 +94,9 @@ def generate_feedback(transcript: dict, metrics: dict) -> dict:
                     "strengths": str_array,
                     "improvements": str_array,
                     "tips": str_array,
+                    "sentence_tips": str_array,
                 },
-                required=["summary", "strengths", "improvements", "tips"],
+                required=["summary", "strengths", "improvements", "tips", "sentence_tips"],
             ),
         ),
     )
