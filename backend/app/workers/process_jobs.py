@@ -59,13 +59,13 @@ def compute_scores(metrics: dict, tone: dict | None = None) -> dict:
     repeated_phrases = metrics.get("repeated_phrases", [])
 
     # --- Delivery ---
-    # Pace: 100 if WPM in [120, 160], linear decay outside
+    # Pace: 100 if WPM in [120, 160], steeper decay outside
     if 120 <= wpm <= 160:
         pace = 100.0
     elif wpm < 120:
-        pace = max(0.0, 100 - (120 - wpm) * 1.5)
+        pace = max(0.0, 100 - (120 - wpm) * 2.0)
     else:
-        pace = max(0.0, 100 - (wpm - 160) * 1.5)
+        pace = max(0.0, 100 - (wpm - 160) * 2.0)
 
     # Consistency: WPM std dev across sentences (min 3 words each)
     sentence_wpms = [s["wpm"] for s in metrics.get("sentences", []) if s.get("word_count", 0) >= 3]
@@ -73,7 +73,7 @@ def compute_scores(metrics: dict, tone: dict | None = None) -> dict:
         mean_wpm = sum(sentence_wpms) / len(sentence_wpms)
         variance = sum((x - mean_wpm) ** 2 for x in sentence_wpms) / len(sentence_wpms)
         std_dev = math.sqrt(variance)
-        consistency = max(0.0, min(100.0, 100 - std_dev * 0.8))
+        consistency = max(0.0, min(100.0, 100 - std_dev * 1.5))
     else:
         consistency = 100.0
 
@@ -87,15 +87,18 @@ def compute_scores(metrics: dict, tone: dict | None = None) -> dict:
         delivery = round(pace * 0.50 + consistency * 0.50)
 
     # --- Clarity ---
-    # Fluency: 3 point penalty per filler/min above 2/min threshold
-    fluency = max(0.0, min(100.0, 100 - max(0, filler_rate - 2) * 3))
-    # Repeated phrases: 5 point penalty each, capped at 30
-    repetition_score = 100 - min(30, len(repeated_phrases) * 5)
-    clarity = round(fluency * 0.50 + grammar_score * 0.35 + repetition_score * 0.15)
+    # Fluency: 6 point penalty per filler/min above 1/min threshold (stricter)
+    fluency = max(0.0, min(100.0, 100 - max(0, filler_rate - 1) * 6))
+    # Grammar: apply a realism curve — Gemini scores tend to run high
+    grammar_adj = grammar_score * 0.85
+    # Repeated phrases: 7 point penalty each, capped at 40
+    repetition_score = 100 - min(40, len(repeated_phrases) * 7)
+    clarity = round(fluency * 0.55 + grammar_adj * 0.30 + repetition_score * 0.15)
 
     # --- Vocabulary ---
+    # Richness is typically 0.3–0.6 for everyday speech — normalize so 0.5 = ~65
     richness_score = vocabulary_richness * 100
-    vocab_repetition_score = max(0, 100 - len(repeated_phrases) * 8)
+    vocab_repetition_score = max(0, 100 - len(repeated_phrases) * 10)
     vocabulary = round(richness_score * 0.70 + vocab_repetition_score * 0.30)
 
     # --- Overall ---
@@ -146,12 +149,12 @@ def process_job(job_id: str) -> None:
         scores = compute_scores(metrics, tone)
         log.info(f"Scores: {scores}")
 
-        # Strip internal-only fields and attach per-sentence tips
+        # Strip internal-only fields and attach per-sentence tips (only non-empty ones)
         sentence_tips = feedback.pop("sentence_tips", [])
         stored_sentences = [
             {
                 **{k: v for k, v in s.items() if k not in ("start_index", "end_index")},
-                **({"tip": sentence_tips[i]} if i < len(sentence_tips) else {}),
+                **({"tip": sentence_tips[i]} if i < len(sentence_tips) and sentence_tips[i] else {}),
             }
             for i, s in enumerate(metrics.get("sentences", []))
         ]

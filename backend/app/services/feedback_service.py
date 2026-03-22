@@ -76,10 +76,12 @@ def generate_feedback(transcript: dict, metrics: dict) -> dict:
         "vocal technique to fix an issue found in this session. "
         "No generic advice (no journaling, no daily practice, no mirror work). "
         "Focus on breath control, pacing, transitions, sentence endings, word choice, or vocal mechanics.\n\n"
-        "sentence_tips: an array with exactly one short string per sentence in the sentence list above "
-        "(same order, same count). Each tip is 5–10 words max — a single actionable note about that specific "
-        "sentence only (e.g. 'Too fast, breathe before this one.' or 'Cut the filler here.' or 'Strong delivery.'). "
-        "If a sentence has no issues, say something positive or write 'Good pacing here.'"
+        "sentence_tips: an array with exactly one entry per sentence in the sentence list above (same order, same count). "
+        "Each entry is either an empty string (for clean sentences with no issues) or a short tip of 5–10 words max. "
+        "Only provide a non-empty tip when the sentence has a real problem: filler count > 0, "
+        "WPM clearly too fast (>190) or too slow (<80), or a grammar issue. "
+        "Do NOT add tips to clean sentences — leave them as empty strings. "
+        "Example tips: 'Cut the filler here.' or 'Slow down, you rushed this.' or 'Fix subject-verb agreement.'"
     )
     str_array = types.Schema(type=types.Type.ARRAY, items=types.Schema(type=types.Type.STRING))
     response = client.models.generate_content(
