@@ -1,12 +1,18 @@
 import os
+from functools import lru_cache
+
 import jwt
 from fastapi import Header, HTTPException
 from dotenv import load_dotenv
 
 load_dotenv()
 
-SUPABASE_JWT_SECRET = os.environ["SUPABASE_JWT_SECRET"]
 ALGORITHM = "HS256"
+
+
+@lru_cache(maxsize=1)
+def _get_jwt_secret() -> str:
+    return os.environ["SUPABASE_JWT_SECRET"]
 
 
 def get_current_user_id(authorization: str = Header(...)) -> str:
@@ -18,7 +24,7 @@ def get_current_user_id(authorization: str = Header(...)) -> str:
     try:
         payload = jwt.decode(
             token,
-            SUPABASE_JWT_SECRET,
+            _get_jwt_secret(),
             algorithms=[ALGORITHM],
             audience="authenticated",
         )
