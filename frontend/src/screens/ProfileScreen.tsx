@@ -7,6 +7,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { SlideOutMenu } from '../components/SlideOutMenu';
 import { authColors, fontFamily, radius, spacing } from '../theme';
 import { getMyProfile, listJobs, type ProfileData, type JobSummary } from '../lib/api';
+import { isPublished, initPublishedJobs } from '../lib/publishedJobs';
 import type { AnalysisResult } from '../types/analysis';
 
 // Module-level caches — survive navigation, cleared on app restart
@@ -34,9 +35,13 @@ export function ProfileScreen() {
   const [profile, setProfile] = useState<ProfileData | null>(cachedProfile);
   const [jobs, setJobs] = useState<JobSummary[]>(cachedJobs ?? []);
   const [loading, setLoading] = useState(cachedProfile === null);
+  const [, forceUpdate] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
+      // Ensure published jobs are loaded so globe badges render correctly
+      initPublishedJobs().then(() => forceUpdate((n) => n + 1));
+
       const isBackground = cachedProfile !== null;
       let cancelled = false;
       if (!isBackground) setLoading(true);
@@ -158,12 +163,19 @@ export function ProfileScreen() {
                           <Text style={styles.durationText}>{durationLabel}</Text>
                         </View>
                       )}
-                      {overall != null && (
-                        <View style={styles.scorePill}>
-                          <View style={styles.scoreDot} />
-                          <Text style={styles.scoreText}>{Math.round(overall)}</Text>
-                        </View>
-                      )}
+                      <View style={styles.tileBottom}>
+                        {overall != null && (
+                          <View style={styles.scorePill}>
+                            <View style={styles.scoreDot} />
+                            <Text style={styles.scoreText}>{Math.round(overall)}</Text>
+                          </View>
+                        )}
+                        {isPublished(job.job_id) && (
+                          <View style={styles.publicBadge}>
+                            <Ionicons name="globe-outline" size={10} color="#fff" />
+                          </View>
+                        )}
+                      </View>
                     </Pressable>
                   );
                 })}
@@ -339,8 +351,12 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 10,
   },
+  tileBottom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   scorePill: {
-    alignSelf: 'flex-start',
     backgroundColor: 'rgba(0,0,0,0.45)',
     borderRadius: 6,
     paddingHorizontal: 6,
@@ -348,6 +364,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+  },
+  publicBadge: {
+    backgroundColor: '#5a6b40',
+    borderRadius: 6,
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scoreDot: {
     width: 6,

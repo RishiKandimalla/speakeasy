@@ -176,6 +176,15 @@ export async function listJobs(limit = 20, offset = 0): Promise<JobSummary[]> {
   return parseJsonOrThrow(res) as Promise<JobSummary[]>;
 }
 
+export async function publishPost(jobId: string): Promise<{ post_id: string }> {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/v1/jobs/${jobId}/publish`, {
+    method: 'POST',
+    headers,
+  });
+  return parseJsonOrThrow(res) as Promise<{ post_id: string }>;
+}
+
 export async function listClips(category: ClipCategory = 'both'): Promise<ClipResponse[]> {
   const params = new URLSearchParams({ category });
   const res = await fetch(`${API_BASE}/v1/clips?${params.toString()}`, {

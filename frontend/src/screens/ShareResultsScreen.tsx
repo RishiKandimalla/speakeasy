@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,6 +13,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { HomeStackScreenProps } from '../navigation/types';
 import type { AnalysisResult } from '../types/analysis';
+import { publishPost } from '../lib/api';
+import { markPublished } from '../lib/publishedJobs';
 import { fontFamily } from '../theme';
 
 // ── design tokens ─────────────────────────────────────────────────────────────
@@ -435,6 +439,7 @@ export function ShareResultsScreen({
 
   const [privacy, setPrivacy] = useState<Privacy>('private');
   const [outcome, setOutcome] = useState<Outcome>(null);
+  const [posting, setPosting] = useState(false);
 
   const goHome = useCallback(() => {
     navigation.reset({ index: 0, routes: [{ name: 'HomeDashboard' }] });
@@ -442,6 +447,7 @@ export function ShareResultsScreen({
 
   const goProfile = useCallback(() => {
     navigation.reset({ index: 0, routes: [{ name: 'HomeDashboard' }] });
+    navigation.getParent()?.navigate('Profile');
   }, [navigation]);
 
   const handleCancel = useCallback(() => {
@@ -453,7 +459,7 @@ export function ShareResultsScreen({
   if (outcome === 'saved') {
     return (
       <SavedConfirmation
-        onViewSaved={goHome}
+        onViewSaved={goProfile}
         onGoHome={goHome}
       />
     );
@@ -490,18 +496,41 @@ export function ShareResultsScreen({
       {/* Sticky action buttons */}
       <View style={[styles.btnWrap, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <Pressable
-          style={styles.primaryBtn}
-          onPress={() => setOutcome(isPublic ? 'posted' : 'saved')}
+          style={[styles.primaryBtn, posting && { opacity: 0.7 }]}
+          disabled={posting}
+          onPress={async () => {
+            if (isPublic) {
+              setPosting(true);
+              try {
+                await publishPost(result.job_id);
+                await markPublished(result.job_id);
+                setOutcome('posted');
+              } catch (err: unknown) {
+                const msg = err instanceof Error ? err.message : 'Something went wrong';
+                Alert.alert('Failed to post', msg);
+              } finally {
+                setPosting(false);
+              }
+            } else {
+              setOutcome('saved');
+            }
+          }}
         >
-          <Ionicons
-            name={isPublic ? 'share-social-outline' : 'lock-closed-outline'}
-            size={16}
-            color="white"
-            style={{ marginRight: 8 }}
-          />
-          <Text style={styles.primaryText}>
-            {isPublic ? 'Post to Profile' : 'Save Privately'}
-          </Text>
+          {posting ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <>
+              <Ionicons
+                name={isPublic ? 'share-social-outline' : 'lock-closed-outline'}
+                size={16}
+                color="white"
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.primaryText}>
+                {isPublic ? 'Post to Profile' : 'Save Privately'}
+              </Text>
+            </>
+          )}
         </Pressable>
 
         <Pressable style={styles.cancelBtn} onPress={handleCancel}>
