@@ -535,6 +535,11 @@ def get_reaction_summary(post_id: str) -> dict:
 
 # ── Notifications ─────────────────────────────────────────────────────────────
 
+def _is_missing_notifications_table_error(exc: Exception) -> bool:
+    msg = str(exc)
+    return "notifications" in msg and ("PGRST205" in msg or "42P01" in msg or "does not exist" in msg)
+
+
 def create_notification(user_id: str, post_id: str, emoji: str | None = None) -> dict:
     db = get_client()
     result = db.table("notifications").insert({
@@ -548,35 +553,49 @@ def create_notification(user_id: str, post_id: str, emoji: str | None = None) ->
 
 def list_notifications(user_id: str, limit: int = 50, offset: int = 0) -> list[dict]:
     db = get_client()
-    result = (
-        db.table("notifications")
-        .select("*")
-        .eq("user_id", user_id)
-        .order("created_at", desc=True)
-        .range(offset, offset + limit - 1)
-        .execute()
-    )
-    return result.data or []
+    try:
+        result = (
+            db.table("notifications")
+            .select("*")
+            .eq("user_id", user_id)
+            .order("created_at", desc=True)
+            .range(offset, offset + limit - 1)
+            .execute()
+        )
+        return result.data or []
+    except Exception as exc:
+        if _is_missing_notifications_table_error(exc):
+            return []
+        raise
 
 
 def mark_notifications_read(user_id: str, notification_ids: list[str]) -> None:
     db = get_client()
-    (
-        db.table("notifications")
-        .update({"read": True})
-        .eq("user_id", user_id)
-        .in_("id", notification_ids)
-        .execute()
-    )
+    try:
+        (
+            db.table("notifications")
+            .update({"read": True})
+            .eq("user_id", user_id)
+            .in_("id", notification_ids)
+            .execute()
+        )
+    except Exception as exc:
+        if not _is_missing_notifications_table_error(exc):
+            raise
 
 
 def count_unread_notifications(user_id: str) -> int:
     db = get_client()
-    result = (
-        db.table("notifications")
-        .select("id", count="exact")
-        .eq("user_id", user_id)
-        .eq("read", False)
-        .execute()
-    )
-    return result.count or 0
+    try:
+        result = (
+            db.table("notifications")
+            .select("id", count="exact")
+            .eq("user_id", user_id)
+            .eq("read", False)
+            .execute()
+        )
+        return result.count or 0
+    except Exception as exc:
+        if _is_missing_notifications_table_error(exc):
+            return 0
+        raise

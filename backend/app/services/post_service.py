@@ -1,8 +1,12 @@
+import logging
+
 from fastapi import HTTPException
 from app.db import queries
 from app.models.post import PublishPostResponse, FeedPostResponse, ReactionResponse, ReactionSummaryResponse
 from app.services import storage_service
 from app.services.profile_service import get_or_create_profile
+
+logger = logging.getLogger(__name__)
 
 ALLOWED_EMOJIS = {"fire", "heart", "laugh", "clap", "mindblown", "sad"}
 
@@ -104,9 +108,12 @@ def add_reaction(post_id: str, user_id: str, emoji: str, timestamp_s: float) -> 
     reaction = queries.create_reaction(post_id=post_id, user_id=user_id, emoji=emoji, timestamp_s=timestamp_s)
 
     if is_first:
-        owner_id = post["user_id"]
-        if owner_id != user_id:
-            queries.create_notification(user_id=owner_id, post_id=post_id, emoji=emoji)
+        owner_id = str(post["user_id"])
+        if owner_id != str(user_id):
+            try:
+                queries.create_notification(user_id=owner_id, post_id=post_id, emoji=emoji)
+            except Exception:
+                logger.exception("Failed to create notification for post %s", post_id)
 
     return ReactionResponse(
         reaction_id=reaction["id"],
