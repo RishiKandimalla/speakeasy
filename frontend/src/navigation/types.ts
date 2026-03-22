@@ -6,8 +6,11 @@ export type HomeStackParamList = {
   CreateVideo: undefined;
   RecordVideo: undefined;
   UploadedVideoReview: { videoUri: string };
-  AnalysisLoading: { videoUri?: string | null };
+  AnalysisLoading: { jobId: string };
   AnalysisResults: { result: AnalysisResult };
+  AnalysisSummary: { result: AnalysisResult };
+  ShareResults: { result: AnalysisResult };
+  Notifications: undefined;
 };
 
 export type AuthStackParamList = {

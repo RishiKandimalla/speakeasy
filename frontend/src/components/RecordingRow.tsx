@@ -18,7 +18,7 @@ function hasAnalysisMetrics(item: RecordingCardItem): boolean {
   return (
     item.fillerWordCount != null &&
     item.wpm != null &&
-    item.clarityScore != null
+    item.overallScore != null
   );
 }
 
@@ -66,10 +66,10 @@ export function RecordingRow({ item, index }: RecordingRowProps) {
         {showMetrics && (
           <View style={styles.scoreCol}>
             <Text style={styles.scoreNum} numberOfLines={1}>
-              {item.clarityScore}
+              {item.overallScore}
             </Text>
             <Text style={styles.scoreLabel} numberOfLines={1}>
-              Clarity
+              Score
             </Text>
           </View>
         )}

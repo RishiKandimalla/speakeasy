@@ -12,7 +12,7 @@ import {
 
 import { VideoPreview } from '../components/VideoPreview';
 import type { HomeStackScreenProps } from '../navigation/types';
-import { uploadVideo } from '../lib/api';
+import { uploadVideo, createJob } from '../lib/api';
 import { persistVideoFromUri } from '../lib/savedVideos';
 import { colors, radius, spacing, typography } from '../theme';
 
@@ -22,7 +22,8 @@ export function UploadedVideoReviewScreen({
 }: HomeStackScreenProps<'UploadedVideoReview'>) {
   const videoUri = route.params.videoUri;
   const [playbackPlaying, setPlaybackPlaying] = useState(false);
-  const [uploadingToServer, setUploadingToServer] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [uploadLabel, setUploadLabel] = useState('');
 
   const pickedFilename = useMemo(() => {
     const clean = videoUri.split('?')[0] ?? videoUri;
@@ -62,25 +63,21 @@ export function UploadedVideoReviewScreen({
     }
   }, [videoUri]);
 
-  const uploadToServer = useCallback(async () => {
-    if (uploadingToServer) return;
-    setUploadingToServer(true);
+  const analyze = useCallback(async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    setUploadLabel('Uploading video…');
     try {
-      const result = await uploadVideo(videoUri, pickedFilename);
-      Alert.alert(
-        'Uploaded',
-        `Video is on the server. Open the Cloud tab to view it.\n\nUpload ID: ${result.upload_id.slice(0, 8)}…`,
-      );
+      const upload = await uploadVideo(videoUri, pickedFilename);
+      setUploadLabel('Starting analysis…');
+      const job = await createJob(upload.upload_id);
+      navigation.replace('AnalysisLoading', { jobId: job.job_id });
     } catch (e) {
       Alert.alert('Upload failed', String(e));
-    } finally {
-      setUploadingToServer(false);
+      setSubmitting(false);
+      setUploadLabel('');
     }
-  }, [videoUri, pickedFilename, uploadingToServer]);
-
-  const analyze = useCallback(() => {
-    navigation.replace('AnalysisLoading', { videoUri });
-  }, [navigation, videoUri]);
+  }, [videoUri, pickedFilename, submitting, navigation]);
 
   const discard = useCallback(() => {
     navigation.goBack();
@@ -104,25 +101,22 @@ export function UploadedVideoReviewScreen({
             {playbackPlaying ? 'Pause' : 'Play'}
           </Text>
         </Pressable>
-        <Pressable style={styles.btn} onPress={analyze}>
-          <Text style={styles.btnText}>Analyze</Text>
+        <Pressable
+          style={[styles.btn, submitting && styles.btnDisabled]}
+          onPress={() => void analyze()}
+          disabled={submitting}
+        >
+          {submitting ? (
+            <View style={styles.btnRow}>
+              <ActivityIndicator color={colors.background} size="small" />
+              <Text style={[styles.btnText, styles.btnRowText]}>{uploadLabel}</Text>
+            </View>
+          ) : (
+            <Text style={styles.btnText}>Analyze</Text>
+          )}
         </Pressable>
         <Pressable style={styles.btnSecondary} onPress={() => void saveToCameraRoll()}>
           <Text style={styles.btnSecondaryText}>Save to camera roll</Text>
-        </Pressable>
-        <Pressable style={styles.btnSecondary} onPress={() => void keepInApp()}>
-          <Text style={styles.btnSecondaryText}>Keep in app</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.btnSecondary, uploadingToServer && styles.btnDisabled]}
-          onPress={() => void uploadToServer()}
-          disabled={uploadingToServer}
-        >
-          {uploadingToServer ? (
-            <ActivityIndicator color={colors.primary} />
-          ) : (
-            <Text style={styles.btnSecondaryText}>Upload to server</Text>
-          )}
         </Pressable>
         <Pressable style={styles.btnSecondary} onPress={discard}>
           <Text style={styles.btnSecondaryText}>Discard</Text>
@@ -189,5 +183,12 @@ const styles = StyleSheet.create({
   },
   btnDisabled: {
     opacity: 0.5,
+  },
+  btnRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  btnRowText: {
+    marginLeft: spacing.sm,
   },
 });

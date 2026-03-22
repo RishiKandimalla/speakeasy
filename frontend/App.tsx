@@ -20,6 +20,9 @@ import { AuthProvider, useAuth } from './src/context/AuthContext';
 import type { AuthStackParamList, HomeStackParamList } from './src/navigation/types';
 import { AnalysisLoadingScreen } from './src/screens/AnalysisLoadingScreen';
 import { AnalysisResultsScreen } from './src/screens/AnalysisResultsScreen';
+import { AnalysisSummaryScreen } from './src/screens/AnalysisSummaryScreen';
+import { ShareResultsScreen } from './src/screens/ShareResultsScreen';
+import { NotificationsScreen } from './src/screens/NotificationsScreen';
 import { CreateVideoScreen } from './src/screens/CreateVideoScreen';
 import { FeedScreen } from './src/screens/FeedScreen';
 import { HomeDashboardScreen } from './src/screens/HomeDashboardScreen';
@@ -84,7 +87,22 @@ function HomeStackNavigator() {
       <HomeStack.Screen
         name="AnalysisResults"
         component={AnalysisResultsScreen}
-        options={{ title: 'Results', headerBackVisible: false }}
+        options={{ title: 'Live review', headerBackVisible: false }}
+      />
+      <HomeStack.Screen
+        name="AnalysisSummary"
+        component={AnalysisSummaryScreen}
+        options={{ title: 'Session results' }}
+      />
+      <HomeStack.Screen
+        name="ShareResults"
+        component={ShareResultsScreen}
+        options={{ title: 'Share' }}
+      />
+      <HomeStack.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{ title: 'Notifications' }}
       />
     </HomeStack.Navigator>
   );

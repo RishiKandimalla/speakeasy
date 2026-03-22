@@ -3,7 +3,7 @@ import {
   Alert,
   Platform,
   Pressable,
-  ScrollView,
+  SafeAreaView,
   StyleSheet,
   Text,
   View,
@@ -14,27 +14,21 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 
 import type { HomeStackParamList } from '../navigation/types';
-import { colors, radius, spacing, typography } from '../theme';
+import { fontFamily, radius, spacing } from '../theme';
 
 type Nav = NativeStackNavigationProp<HomeStackParamList, 'CreateVideo'>;
+
+const CREAM = '#fffae0';
+const OLIVE = '#4a5240';
+const DARK_TEXT = '#111827';
+const GRAY_TEXT = '#6b7280';
+const HEADER_TEXT = '#263103';
 
 export function CreateVideoScreen() {
   const navigation = useNavigation<Nav>();
 
   useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <Pressable
-          onPress={() => navigation.replace('AnalysisLoading', {})}
-          hitSlop={8}
-          style={styles.headerLink}
-        >
-          <Text style={styles.headerLinkText} numberOfLines={1}>
-            Skip to demo
-          </Text>
-        </Pressable>
-      ),
-    });
+    navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
   const pickVideo = async () => {
@@ -59,133 +53,188 @@ export function CreateVideoScreen() {
   };
 
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
-    >
-      <View style={styles.hero}>
-        <Text style={styles.eyebrow}>Create</Text>
-        <Text style={styles.title} numberOfLines={2}>
-          New speaking session
-        </Text>
-        <Text style={styles.sub} numberOfLines={3}>
-          Pick how you want to begin. You can record live or upload an existing clip.
-        </Text>
+    <SafeAreaView style={styles.root}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Pressable onPress={() => navigation.goBack()} hitSlop={10} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={20} color={HEADER_TEXT} />
+        </Pressable>
+        <Text style={styles.headerTitle}>New video</Text>
       </View>
 
-      <Pressable
-        style={styles.card}
-        onPress={() => navigation.navigate('RecordVideo')}
-        accessibilityRole="button"
-      >
-        <View style={[styles.iconCircle, styles.iconCirclePrimary]}>
-          <Ionicons name="videocam" size={28} color={colors.primary} />
+      {/* Main content */}
+      <View style={styles.body}>
+        <View style={styles.hero}>
+          <Text style={styles.heroTitle}>How do you want{'\n'}to create your video?</Text>
+          <Text style={styles.heroSub}>Record live or upload one you already have</Text>
         </View>
-        <View style={styles.cardText}>
-          <Text style={styles.cardTitle} numberOfLines={1}>
-            Record video
-          </Text>
-          <Text style={styles.cardDesc} numberOfLines={3}>
-            Use your camera to record
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={22} color={colors.textMuted} />
-      </Pressable>
 
-      <Pressable
-        style={styles.card}
-        onPress={() => void pickVideo()}
-        accessibilityRole="button"
-      >
-        <View style={[styles.iconCircle, styles.iconCircleMuted]}>
-          <Ionicons name="cloud-upload-outline" size={28} color={colors.primaryMuted} />
-        </View>
-        <View style={styles.cardText}>
-          <Text style={styles.cardTitle} numberOfLines={1}>
-            Upload video
-          </Text>
-          <Text style={styles.cardDesc} numberOfLines={3}>
-            Choose a file from your device
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={22} color={colors.textMuted} />
-      </Pressable>
-    </ScrollView>
+        {/* Record video card */}
+        <Pressable
+          style={styles.cardDark}
+          onPress={() => navigation.navigate('RecordVideo')}
+          accessibilityRole="button"
+        >
+          <View style={styles.iconWrapDark}>
+            <Ionicons name="videocam-outline" size={24} color="#fff" />
+          </View>
+          <View style={styles.cardText}>
+            <Text style={styles.cardTitleLight}>Record video</Text>
+            <Text style={styles.cardDescLight}>Use your camera to record a new speaking video</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.7)" />
+        </Pressable>
+
+        {/* Upload video card */}
+        <Pressable
+          style={styles.cardLight}
+          onPress={() => void pickVideo()}
+          accessibilityRole="button"
+        >
+          <View style={styles.iconWrapLight}>
+            <Ionicons name="arrow-up-circle-outline" size={24} color={OLIVE} />
+          </View>
+          <View style={styles.cardText}>
+            <Text style={styles.cardTitleDark}>Upload video</Text>
+            <Text style={styles.cardDescDark}>Choose an existing video from your device</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={GRAY_TEXT} />
+        </Pressable>
+      </View>
+
+      {/* Footer */}
+      <Text style={styles.footer}>
+        Videos are kept private by default. You choose what to share after recording.
+      </Text>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: {
+  root: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: CREAM,
   },
-  content: {
-    padding: spacing.xxl,
-    paddingBottom: spacing.xxl * 2,
-  },
-  hero: {
-    marginBottom: spacing.xl,
-  },
-  eyebrow: {
-    ...typography.caption,
-    color: colors.primaryMuted,
-    marginBottom: spacing.sm,
-  },
-  headerLink: {
-    marginRight: spacing.sm,
-    maxWidth: 140,
-  },
-  headerLinkText: {
-    ...typography.caption,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  title: {
-    ...typography.title,
-    color: colors.text,
-    marginBottom: spacing.sm,
-  },
-  sub: {
-    ...typography.body,
-    color: colors.textSecondary,
-  },
-  card: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: radius.xl,
-    padding: spacing.xl,
-    marginBottom: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    gap: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.md,
+    gap: spacing.sm,
   },
-  iconCircle: {
-    width: 62,
-    height: 62,
-    borderRadius: radius.full,
+  backBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontFamily: fontFamily.bodyMedium,
+    fontSize: 16,
+    color: HEADER_TEXT,
+    fontWeight: '500',
+  },
+  body: {
+    flex: 1,
+    paddingHorizontal: spacing.xl,
+    justifyContent: 'center',
+    gap: spacing.lg,
+  },
+  hero: {
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  heroTitle: {
+    fontFamily: fontFamily.playfairSemiBold,
+    fontSize: 30,
+    color: DARK_TEXT,
+    textAlign: 'center',
+    lineHeight: 38,
+    marginBottom: spacing.sm,
+  },
+  heroSub: {
+    fontFamily: fontFamily.body,
+    fontSize: 13,
+    color: GRAY_TEXT,
+    textAlign: 'center',
+  },
+  cardDark: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: OLIVE,
+    borderRadius: radius.lg,
+    padding: spacing.xl,
+    gap: spacing.md,
+    borderWidth: 1.3,
+    borderColor: 'rgba(38,49,3,0.2)',
+  },
+  cardLight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.55)',
+    borderRadius: radius.lg,
+    padding: spacing.xl,
+    gap: spacing.md,
+    borderWidth: 1.3,
+    borderColor: 'rgba(38,49,3,0.18)',
+  },
+  iconWrapDark: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
   },
-  iconCirclePrimary: {
-    backgroundColor: colors.cardElevated,
-  },
-  iconCircleMuted: {
-    backgroundColor: colors.cardElevated,
+  iconWrapLight: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(74,82,64,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   cardText: {
     flex: 1,
     minWidth: 0,
   },
-  cardTitle: {
-    ...typography.headline,
-    color: colors.text,
+  cardTitleLight: {
+    fontFamily: fontFamily.bodyMedium,
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: '500',
     marginBottom: spacing.xs,
   },
-  cardDesc: {
-    ...typography.caption,
-    color: colors.textMuted,
+  cardDescLight: {
+    fontFamily: fontFamily.bodyMedium,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.7)',
+    lineHeight: 20,
+  },
+  cardTitleDark: {
+    fontFamily: fontFamily.bodyMedium,
+    fontSize: 16,
+    color: DARK_TEXT,
+    fontWeight: '500',
+    marginBottom: spacing.xs,
+  },
+  cardDescDark: {
+    fontFamily: fontFamily.bodyMedium,
+    fontSize: 13,
+    color: GRAY_TEXT,
+    lineHeight: 20,
+  },
+  footer: {
+    fontFamily: fontFamily.body,
+    fontSize: 11,
+    color: GRAY_TEXT,
+    textAlign: 'center',
+    paddingHorizontal: spacing.xxxl,
+    paddingBottom: spacing.xxl,
+    lineHeight: 18,
   },
 });

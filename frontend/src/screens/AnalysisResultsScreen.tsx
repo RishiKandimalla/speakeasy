@@ -1,400 +1,323 @@
-import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
-import { useCallback, useMemo, useState } from 'react';
-import type { DimensionValue } from 'react-native';
+import { useVideoPlayer, VideoView } from 'expo-video';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ScoreBadge } from '../components/ScoreBadge';
-import { buildInstagramCaption, getStubAnalysisResult } from '../lib/stubAnalysis';
 import type { HomeStackScreenProps } from '../navigation/types';
-import type { AnalysisResult } from '../types/analysis';
+import type { AnalysisResult, Sentence } from '../types/analysis';
 import { colors, radius, spacing, typography } from '../theme';
 
-function MetricCard({
-  icon,
-  title,
-  value,
-  sub,
-  barPct,
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+function fmt(secs: number): string {
+  const m = Math.floor(secs / 60);
+  const s = Math.floor(secs % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function clamp(v: number, lo: number, hi: number) {
+  return Math.max(lo, Math.min(hi, v));
+}
+
+function FeedItem({
+  timestamp,
+  text,
+  active,
 }: {
-  icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  value: string;
-  sub: string;
-  barPct: number;
+  timestamp: string;
+  text: string;
+  active: boolean;
 }) {
-  const width = `${Math.min(100, Math.max(0, barPct))}%` as DimensionValue;
   return (
-    <View style={styles.metricCard}>
-      <View style={styles.metricTop}>
-        <Ionicons name={icon} size={22} color={colors.primary} style={styles.metricIcon} />
-        <View style={styles.metricTextCol}>
-          <Text style={styles.metricTitle} numberOfLines={1}>
-            {title}
-          </Text>
-          <Text style={styles.metricValue} numberOfLines={1}>
-            {value}
-          </Text>
-          <Text style={styles.metricSub} numberOfLines={2} ellipsizeMode="tail">
-            {sub}
-          </Text>
-        </View>
-      </View>
-      <View style={styles.barTrack}>
-        <View style={[styles.barFill, { width }]} />
-      </View>
+    <View style={[feed.row, active && feed.rowActive]}>
+      <Text style={[feed.ts, active && feed.tsActive]}>{timestamp}</Text>
+      <Text style={[feed.text, active && feed.textActive]} numberOfLines={3}>
+        {text}
+      </Text>
     </View>
   );
 }
 
-function renderTranscript(result: AnalysisResult) {
-  const fillers = result.fillerWordsInTranscript.filter(Boolean);
-  if (fillers.length === 0) {
-    return (
-      <Text style={styles.transcriptText} selectable>
-        {result.transcript}
-      </Text>
-    );
-  }
-  const pattern = new RegExp(
-    `(${fillers.map((f) => f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`,
-    'gi',
-  );
-  const parts = result.transcript.split(pattern);
+const feed = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  rowActive: {
+    backgroundColor: 'rgba(69,227,164,0.07)',
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
+    paddingLeft: spacing.lg - 3,
+  },
+  ts: { ...typography.caption, color: colors.textMuted, width: 36, paddingTop: 2 },
+  tsActive: { color: colors.primary },
+  text: { ...typography.body, color: colors.textSecondary, flex: 1, fontSize: 15 },
+  textActive: { color: colors.text },
+});
+
+function SectionHeader({ title, sub }: { title: string; sub?: string }) {
   return (
-    <Text style={styles.transcriptText} selectable>
-      {parts.map((part, i) => {
-        const isFiller = fillers.some(
-          (f) => f.toLowerCase() === part.toLowerCase(),
-        );
-        if (isFiller) {
-          return (
-            <Text key={`${i}-${part}`} style={styles.fillerHighlight}>
-              {part}
-            </Text>
-          );
-        }
-        return <Text key={`${i}-${part}`}>{part}</Text>;
-      })}
-    </Text>
+    <View style={sh.wrap}>
+      <Text style={sh.title}>{title}</Text>
+      {sub && <Text style={sh.sub}>{sub}</Text>}
+    </View>
   );
 }
+
+const sh = StyleSheet.create({
+  wrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.sm,
+  },
+  title: { ...typography.headline, color: colors.text, fontSize: 17 },
+  sub: {
+    ...typography.caption,
+    color: colors.primary,
+    backgroundColor: 'rgba(69,227,164,0.12)',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: radius.full,
+  },
+});
+
+// ── live analytics bar ────────────────────────────────────────────────────────
+
+function LiveBar({
+  sentence,
+  index,
+}: {
+  sentence: Sentence | null;
+  index: number;
+}) {
+  const wpm = sentence?.wpm ?? 0;
+  const conf = sentence?.tone?.confidence ?? null;
+  const energy = sentence?.tone?.energy ?? null;
+
+  const wpmPct = clamp((wpm / 200) * 100, 0, 100);
+  const confPct = conf != null ? clamp(conf * 100, 0, 100) : null;
+  const energyPct = energy != null ? clamp(energy * 100, 0, 100) : null;
+
+  const wpmColor =
+    wpm < 100 || wpm > 180 ? colors.warning : colors.primary;
+
+  return (
+    <View style={lb.wrap}>
+      <View style={lb.bar}>
+        <Text style={lb.barLabel}>Pace</Text>
+        <View style={lb.track}>
+          <View style={[lb.fill, { width: `${wpmPct}%` as any, backgroundColor: wpmColor }]} />
+        </View>
+        <Text style={[lb.barVal, { color: wpmColor }]}>{wpm > 0 ? `${Math.round(wpm)} wpm` : '—'}</Text>
+      </View>
+      {confPct != null && (
+        <View style={lb.bar}>
+          <Text style={lb.barLabel}>Confidence</Text>
+          <View style={lb.track}>
+            <View style={[lb.fill, { width: `${confPct}%` as any, backgroundColor: colors.info }]} />
+          </View>
+          <Text style={[lb.barVal, { color: colors.info }]}>{Math.round(confPct)}%</Text>
+        </View>
+      )}
+      {energyPct != null && (
+        <View style={lb.bar}>
+          <Text style={lb.barLabel}>Energy</Text>
+          <View style={lb.track}>
+            <View style={[lb.fill, { width: `${energyPct}%` as any, backgroundColor: colors.primaryMuted }]} />
+          </View>
+          <Text style={[lb.barVal, { color: colors.primaryMuted }]}>{Math.round(energyPct)}%</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const lb = StyleSheet.create({
+  wrap: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  bar: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  barLabel: { ...typography.caption, color: colors.textMuted, width: 72 },
+  track: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.card,
+    overflow: 'hidden',
+  },
+  fill: { height: '100%', borderRadius: 2 },
+  barVal: { ...typography.caption, width: 54, textAlign: 'right' },
+});
+
+// ── main screen ───────────────────────────────────────────────────────────────
 
 export function AnalysisResultsScreen({
   navigation,
   route,
 }: HomeStackScreenProps<'AnalysisResults'>) {
   const insets = useSafeAreaInsets();
-  const result = route.params?.result ?? getStubAnalysisResult();
-  const defaultCaption = useMemo(() => buildInstagramCaption(result), [result]);
-  const [caption, setCaption] = useState(defaultCaption);
+  const result: AnalysisResult = route.params.result;
 
-  const copyCaption = useCallback(async () => {
-    await Clipboard.setStringAsync(caption);
-    Alert.alert('Copied', 'Caption copied.');
-  }, [caption]);
+  const videoUri = result.assets?.edited_video ?? result.assets?.audio ?? null;
+  const sentences: Sentence[] = result.metrics?.sentences ?? [];
 
-  const done = useCallback(() => {
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'HomeDashboard' }],
-    });
-  }, [navigation]);
+  const player = useVideoPlayer(videoUri ?? '', (p) => {
+    p.loop = false;
+  });
+
+  const [currentTime, setCurrentTime] = useState(0);
+  const scrollRef = useRef<ScrollView>(null);
+  const itemYMap = useRef<Record<number, number>>({});
+
+  // Poll video position every 300ms
+  useEffect(() => {
+    if (!videoUri) return;
+    const id = setInterval(() => {
+      setCurrentTime(player.currentTime ?? 0);
+    }, 300);
+    return () => clearInterval(id);
+  }, [player, videoUri]);
+
+  // Find active sentence index
+  const activeSentenceIdx = sentences.findIndex(
+    (s) => currentTime >= s.start && currentTime < s.end,
+  );
+  const activeSentence = activeSentenceIdx >= 0 ? sentences[activeSentenceIdx] : null;
+
+  // Auto-scroll feed to keep active sentence tip visible
+  const prevActiveIdx = useRef(-1);
+  useEffect(() => {
+    if (activeSentenceIdx < 0 || activeSentenceIdx === prevActiveIdx.current) return;
+    prevActiveIdx.current = activeSentenceIdx;
+    const y = itemYMap.current[activeSentenceIdx];
+    if (y != null) {
+      scrollRef.current?.scrollTo({ y: Math.max(0, y - 60), animated: true });
+    }
+  }, [activeSentenceIdx]);
+
+  const goToSummary = useCallback(() => {
+    navigation.navigate('AnalysisSummary', { result });
+  }, [navigation, result]);
 
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={{
-        padding: spacing.lg,
-        paddingBottom: insets.bottom + spacing.xxl,
-      }}
-      keyboardShouldPersistTaps="handled"
-    >
-      <View style={styles.trophyRow}>
-        <Ionicons name="trophy" size={28} color={colors.primary} />
-      </View>
-      <Text style={styles.pageTitle} numberOfLines={2}>
-        Session insights
-      </Text>
-
-      <Text style={styles.scoreLabel} numberOfLines={1}>
-        Clarity score
-      </Text>
-      <ScoreBadge score={result.clarityScore} grade={result.grade} />
-
-      <MetricCard
-        icon="chatbubble-outline"
-        title="Filler words"
-        value={String(result.fillerWords.count)}
-        sub={`${result.fillerWords.percentage}% of words`}
-        barPct={Math.min(100, result.fillerWords.percentage * 20)}
-      />
-      <MetricCard
-        icon="time-outline"
-        title="Pause time"
-        value={`${result.pauseTime.total}s`}
-        sub={`Avg ${result.pauseTime.average}s`}
-        barPct={50}
-      />
-      <MetricCard
-        icon="flash-outline"
-        title="Speaking rate"
-        value={String(result.speakingRate.wpm)}
-        sub="Words per minute"
-        barPct={Math.min(100, (result.speakingRate.wpm / 200) * 100)}
-      />
-
-      <Text style={styles.sectionTitle} numberOfLines={1}>
-        Feedback
-      </Text>
-      {result.feedback.map((f, idx) => (
-        <View key={idx} style={styles.feedbackRow}>
-          <View style={styles.feedbackDot} />
-          <Text style={styles.feedbackText} numberOfLines={4}>
-            {f.text}
-          </Text>
+    <View style={styles.root}>
+      {/* Video */}
+      {videoUri ? (
+        <View style={styles.videoOuter}>
+          <View style={styles.videoWrap}>
+            <VideoView player={player} style={styles.video} nativeControls />
+          </View>
         </View>
-      ))}
+      ) : (
+        <View style={styles.noVideo}>
+          <Ionicons name="videocam-off-outline" size={28} color={colors.textMuted} />
+          <Text style={styles.noVideoText}>No video available</Text>
+        </View>
+      )}
 
-      <Text style={styles.sectionTitle} numberOfLines={1}>
-        Transcript
-      </Text>
-      <View style={styles.transcriptBox}>{renderTranscript(result)}</View>
+      <ScrollView
+        ref={scrollRef}
+        style={styles.scroll}
+        contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xxl }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Live analytics header */}
+        <SectionHeader title="Live analytics" />
 
-      <Text style={styles.sectionTitle} numberOfLines={1}>
-        Share
-      </Text>
-      <View style={styles.captionHeader}>
-        <Text style={styles.captionLabel} numberOfLines={1}>
-          Caption
-        </Text>
-        <Pressable onPress={() => void copyCaption()} hitSlop={8}>
-          <Text style={styles.copyLink} numberOfLines={1}>
-            Copy
-          </Text>
+        <LiveBar sentence={activeSentence} index={activeSentenceIdx} />
+
+        {/* Live feedback feed */}
+        <SectionHeader title="Live feedback from AI" sub="Synced to video" />
+
+        <View style={styles.feedWrap}>
+          {sentences.map((s, i) => {
+            const tip = s.tip;
+            if (!tip) return null;
+            return (
+              <View
+                key={i}
+                onLayout={(e) => { itemYMap.current[i] = e.nativeEvent.layout.y; }}
+              >
+                <FeedItem
+                  timestamp={fmt(s.start)}
+                  text={tip}
+                  active={i === activeSentenceIdx}
+                />
+              </View>
+            );
+          })}
+        </View>
+
+        <Pressable style={styles.skipBtn} onPress={goToSummary}>
+          <Text style={styles.skipText}>View results</Text>
+          <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
         </Pressable>
-      </View>
-      <TextInput
-        style={styles.captionInput}
-        value={caption}
-        onChangeText={setCaption}
-        multiline
-        placeholderTextColor={colors.textMuted}
-        placeholder="Caption"
-      />
-
-      <Pressable style={styles.primaryBtn} onPress={() => Alert.alert('Instagram', 'Stub: post later.')}>
-        <Ionicons name="logo-instagram" size={22} color={colors.background} />
-        <Text style={styles.primaryBtnText} numberOfLines={1}>
-          Post to Instagram
-        </Text>
-      </Pressable>
-
-      <Pressable style={styles.secondaryBtn} onPress={done}>
-        <Ionicons name="archive-outline" size={20} color={colors.primary} />
-        <Text style={styles.secondaryBtnText} numberOfLines={1}>
-          Save for later
-        </Text>
-      </Pressable>
-
-      <Pressable style={styles.textBtn} onPress={done}>
-        <Text style={styles.textBtnLabel} numberOfLines={1}>
-          Back to home
-        </Text>
-      </Pressable>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  trophyRow: {
+  root: { flex: 1, backgroundColor: colors.background },
+  videoOuter: {
+    width: '100%',
+    backgroundColor: colors.surface,
     alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  pageTitle: {
-    ...typography.title,
-    color: colors.text,
-    textAlign: 'center',
-    marginBottom: spacing.lg,
-  },
-  scoreLabel: {
-    ...typography.caption,
-    color: colors.textMuted,
-    textAlign: 'center',
-  },
-  metricCard: {
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  metricTop: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-    marginBottom: spacing.md,
-  },
-  metricIcon: {
-    marginTop: 2,
-    flexShrink: 0,
-  },
-  metricTextCol: {
-    flex: 1,
-    minWidth: 0,
-  },
-  metricTitle: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
-  },
-  metricValue: {
-    ...typography.headline,
-    fontSize: 20,
-    color: colors.text,
-  },
-  metricSub: {
-    ...typography.caption,
-    color: colors.textMuted,
-    marginTop: spacing.xs,
-  },
-  barTrack: {
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.cardElevated,
-    overflow: 'hidden',
-  },
-  barFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
-    borderRadius: 3,
-  },
-  sectionTitle: {
-    ...typography.headline,
-    color: colors.text,
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  feedbackRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  feedbackDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.primary,
-    marginTop: 6,
-    flexShrink: 0,
-  },
-  feedbackText: {
-    ...typography.body,
-    color: colors.textSecondary,
-    flex: 1,
-    minWidth: 0,
-  },
-  transcriptBox: {
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  transcriptText: {
-    ...typography.body,
-    color: colors.textSecondary,
-    lineHeight: 22,
-  },
-  fillerHighlight: {
-    backgroundColor: 'rgba(126, 203, 161, 0.35)',
-    color: colors.text,
-  },
-  captionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.sm,
-    gap: spacing.md,
-  },
-  captionLabel: {
-    ...typography.caption,
-    color: colors.textMuted,
-    flex: 1,
-    minWidth: 0,
-  },
-  copyLink: {
-    ...typography.caption,
-    color: colors.primary,
-    fontWeight: '600',
-    flexShrink: 0,
-  },
-  captionInput: {
-    ...typography.body,
-    color: colors.text,
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
-    minHeight: 88,
-    textAlignVertical: 'top',
-    marginBottom: spacing.lg,
-  },
-  primaryBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.lg,
-    borderRadius: radius.lg,
-    marginBottom: spacing.sm,
-  },
-  primaryBtnText: {
-    ...typography.body,
-    fontWeight: '600',
-    color: colors.background,
-    flexShrink: 1,
-  },
-  secondaryBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    paddingVertical: spacing.lg,
-    borderRadius: radius.lg,
-    marginBottom: spacing.md,
-  },
-  secondaryBtnText: {
-    ...typography.body,
-    fontWeight: '600',
-    color: colors.primary,
-    flexShrink: 1,
-  },
-  textBtn: {
-    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
     paddingVertical: spacing.sm,
   },
-  textBtnLabel: {
-    ...typography.caption,
-    color: colors.textMuted,
+  videoWrap: {
+    height: 260,
+    aspectRatio: 9 / 16,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    backgroundColor: '#000',
   },
+  video: { width: '100%', height: '100%' },
+  noVideo: {
+    height: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  noVideoText: { ...typography.caption, color: colors.textMuted },
+  scroll: { flex: 1 },
+  feedWrap: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  skipBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  skipText: { ...typography.caption, color: colors.textMuted },
 });

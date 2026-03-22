@@ -1,23 +1,67 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 import { SlideOutMenu } from '../components/SlideOutMenu';
 import { authColors, fontFamily, radius, spacing } from '../theme';
+import { getMyProfile, listJobs, type ProfileData, type JobSummary } from '../lib/api';
+import type { AnalysisResult } from '../types/analysis';
 
-const GRID_ITEMS = [
-  { score: 91, duration: '3:44' },
-  { score: 88, duration: '2:23' },
-  { score: 74, duration: '1:56' },
-  { score: 85, duration: '4:01' },
-  { score: 79, duration: '2:33' },
-  { score: 83, duration: '3:10' },
-];
+// Module-level caches — survive navigation, cleared on app restart
+let cachedProfile: ProfileData | null = null;
+let cachedJobs: JobSummary[] | null = null;
+
+function jobToResult(job: JobSummary): AnalysisResult {
+  return {
+    job_id: job.job_id,
+    status: job.status,
+    assets: job.video_url ? { edited_video: job.video_url } : null,
+    transcript: job.transcript as AnalysisResult['transcript'],
+    scores: job.scores as AnalysisResult['scores'],
+    metrics: job.metrics as AnalysisResult['metrics'],
+    feedback: job.feedback as AnalysisResult['feedback'],
+    tone: job.tone as AnalysisResult['tone'],
+  };
+}
 
 export function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const navigation = useNavigation<any>();
   const [menuVisible, setMenuVisible] = useState(false);
+  const [profile, setProfile] = useState<ProfileData | null>(cachedProfile);
+  const [jobs, setJobs] = useState<JobSummary[]>(cachedJobs ?? []);
+  const [loading, setLoading] = useState(cachedProfile === null);
+
+  useFocusEffect(
+    useCallback(() => {
+      const isBackground = cachedProfile !== null;
+      let cancelled = false;
+      if (!isBackground) setLoading(true);
+      Promise.all([getMyProfile(), listJobs(50)])
+        .then(([p, j]) => {
+          if (cancelled) return;
+          const completed = j.filter((job) => job.status === 'completed');
+          cachedProfile = p;
+          cachedJobs = completed;
+          setProfile(p);
+          setJobs(completed);
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (!cancelled && !isBackground) setLoading(false);
+        });
+      return () => { cancelled = true; };
+    }, []),
+  );
+
+  const completedJobs = jobs;
+  const username = profile?.username ?? '—';
+  const followerCount = profile?.follower_count ?? 0;
+  const followingCount = profile?.following_count ?? 0;
+  const postCount = completedJobs.length;
 
   return (
     <>
@@ -32,7 +76,7 @@ export function ProfileScreen() {
         <View style={styles.header}>
           <Image source={require('../../assets/images/speakeasy_name.png')} style={styles.wordmark} resizeMode="contain" />
           <View style={styles.headerIcons}>
-            <Pressable hitSlop={8}>
+            <Pressable hitSlop={8} onPress={() => navigation.navigate('Home', { screen: 'Notifications' })}>
               <Ionicons name="notifications-outline" size={22} color="#1F2A16" />
             </Pressable>
             <Pressable hitSlop={8} onPress={() => setMenuVisible(true)}>
@@ -40,62 +84,93 @@ export function ProfileScreen() {
             </Pressable>
           </View>
         </View>
-      
 
-        <View style={styles.profileTop}>
-        <View style={styles.avatar} />
-        <View style={styles.profileStat}>
-          <Text style={styles.profileNum}>6</Text>
-          <Text style={styles.profileLabel}>Posts</Text>
-        </View>
-        <View style={styles.profileStat}>
-          <Text style={styles.profileNum}>142</Text>
-          <Text style={styles.profileLabel}>Followers</Text>
-        </View>
-        <View style={styles.profileStat}>
-          <Text style={styles.profileNum}>89</Text>
-          <Text style={styles.profileLabel}>Following</Text>
-        </View>
-        </View>
-
-        <Text style={styles.name}>Joh</Text>
-        <Text style={styles.bio}>Public speaking enthusiast</Text>
-        <Text style={styles.bio}>Building confidence one video at a time</Text>
-
-        <View style={styles.actionRow}>
-        <View style={styles.outlineBtnLarge}>
-          <Text style={styles.outlineBtnText}>Edit profile</Text>
-        </View>
-        <View style={styles.outlineBtnSmall}>
-          <Ionicons name="share-social-outline" size={16} color="#1F2A16" />
-          <Text style={styles.outlineBtnText}>Share</Text>
-        </View>
-        </View>
-
-        <View style={styles.tabHeader}>
-        <View style={styles.tabItemActive}>
-          <Ionicons name="grid-outline" size={16} color="#1F2A16" />
-          <Text style={styles.tabItemTextActive}>My posts</Text>
-        </View>
-        <View style={styles.tabItem}>
-          <Ionicons name="heart-outline" size={16} color="#9FA4B2" />
-          <Text style={styles.tabItemText}>Reacted to</Text>
-        </View>
-        </View>
-
-        <View style={styles.grid}>
-        {GRID_ITEMS.map((item, index) => (
-          <View key={`${item.duration}-${index}`} style={styles.gridTile}>
-            <View style={styles.durationPill}>
-              <Text style={styles.durationText}>{item.duration}</Text>
-            </View>
-            <View style={styles.scorePill}>
-              <View style={styles.scoreDot} />
-              <Text style={styles.scoreText}>{item.score}</Text>
-            </View>
+        {loading ? (
+          <View style={styles.loadingBox}>
+            <ActivityIndicator color="#678A45" />
           </View>
-        ))}
-        </View>
+        ) : (
+          <>
+            <View style={styles.profileTop}>
+              <View style={styles.avatar} />
+              <View style={styles.profileStat}>
+                <Text style={styles.profileNum}>{postCount}</Text>
+                <Text style={styles.profileLabel}>Posts</Text>
+              </View>
+              <View style={styles.profileStat}>
+                <Text style={styles.profileNum}>{followerCount}</Text>
+                <Text style={styles.profileLabel}>Followers</Text>
+              </View>
+              <View style={styles.profileStat}>
+                <Text style={styles.profileNum}>{followingCount}</Text>
+                <Text style={styles.profileLabel}>Following</Text>
+              </View>
+            </View>
+
+            <Text style={styles.name}>{username}</Text>
+
+            <View style={styles.actionRow}>
+              <View style={styles.outlineBtnLarge}>
+                <Text style={styles.outlineBtnText}>Edit profile</Text>
+              </View>
+              <View style={styles.outlineBtnSmall}>
+                <Ionicons name="share-social-outline" size={16} color="#1F2A16" />
+                <Text style={styles.outlineBtnText}>Share</Text>
+              </View>
+            </View>
+
+            <View style={styles.tabHeader}>
+              <View style={styles.tabItemActive}>
+                <Ionicons name="grid-outline" size={16} color="#1F2A16" />
+                <Text style={styles.tabItemTextActive}>My posts</Text>
+              </View>
+              <View style={styles.tabItem}>
+                <Ionicons name="heart-outline" size={16} color="#9FA4B2" />
+                <Text style={styles.tabItemText}>Reacted to</Text>
+              </View>
+            </View>
+
+            {completedJobs.length === 0 ? (
+              <View style={styles.emptyGrid}>
+                <Text style={styles.emptyGridText}>No videos yet. Record one to get started!</Text>
+              </View>
+            ) : (
+              <View style={styles.grid}>
+                {completedJobs.map((job) => {
+                  const overall = job.scores?.overall;
+                  const durationS = (job.metrics as Record<string, number> | null)?.duration;
+                  const durationLabel = durationS != null
+                    ? `${Math.floor(durationS / 60)}:${String(Math.round(durationS % 60)).padStart(2, '0')}`
+                    : null;
+                  return (
+                    <Pressable
+                      key={job.job_id}
+                      style={({ pressed }) => [styles.gridTile, pressed && styles.gridTilePressed]}
+                      onPress={() =>
+                        navigation.navigate('Home', {
+                          screen: 'AnalysisResults',
+                          params: { result: jobToResult(job) },
+                        })
+                      }
+                    >
+                      {durationLabel && (
+                        <View style={styles.durationPill}>
+                          <Text style={styles.durationText}>{durationLabel}</Text>
+                        </View>
+                      )}
+                      {overall != null && (
+                        <View style={styles.scorePill}>
+                          <View style={styles.scoreDot} />
+                          <Text style={styles.scoreText}>{Math.round(overall)}</Text>
+                        </View>
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
+          </>
+        )}
       </ScrollView>
       <SlideOutMenu visible={menuVisible} onClose={() => setMenuVisible(false)} />
     </>
@@ -114,11 +189,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.md,
   },
-  brand: {
-    fontFamily: fontFamily.bodySemiBold,
-    fontSize: 30,
-    color: '#111111',
-  },
   wordmark: {
     width: 116,
     height: 30,
@@ -126,6 +196,10 @@ const styles = StyleSheet.create({
   headerIcons: {
     flexDirection: 'row',
     gap: spacing.md,
+  },
+  loadingBox: {
+    paddingTop: 80,
+    alignItems: 'center',
   },
   profileTop: {
     flexDirection: 'row',
@@ -159,12 +233,6 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.bodySemiBold,
     fontSize: 32,
     color: '#1F2A16',
-  },
-  bio: {
-    fontFamily: fontFamily.body,
-    color: '#68718A',
-    fontSize: 14,
-    marginTop: 2,
   },
   actionRow: {
     flexDirection: 'row',
@@ -232,6 +300,16 @@ const styles = StyleSheet.create({
     color: '#9FA4B2',
     fontSize: 14,
   },
+  emptyGrid: {
+    paddingTop: spacing.xxl,
+    alignItems: 'center',
+  },
+  emptyGridText: {
+    fontFamily: fontFamily.body,
+    color: '#A5AAC0',
+    fontSize: 14,
+    textAlign: 'center',
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -245,6 +323,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#2D3330',
     padding: spacing.xs,
     justifyContent: 'space-between',
+  },
+  gridTilePressed: {
+    opacity: 0.7,
   },
   durationPill: {
     alignSelf: 'flex-end',
