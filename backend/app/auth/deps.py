@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-ALGORITHM = "HS256"
+ALGORITHMS = ["HS256", "HS384", "HS512"]
 
 
 @lru_cache(maxsize=1)
@@ -25,7 +25,7 @@ def get_current_user_id(authorization: str = Header(...)) -> str:
         payload = jwt.decode(
             token,
             _get_jwt_secret(),
-            algorithms=[ALGORITHM],
+            algorithms=ALGORITHMS,
             audience="authenticated",
         )
     except jwt.ExpiredSignatureError:
