@@ -51,7 +51,8 @@
           "photosPermission": "Allow Speakeasy to choose a video from your library",
           "cameraPermission": "Allow Speakeasy to record video"
         }
-      ]
+      ],
+      "expo-secure-store"
     ]
   }
 }

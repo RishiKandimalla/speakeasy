@@ -30,8 +30,8 @@ def get_current_user_id(authorization: str = Header(...)) -> str:
         )
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token has expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    except jwt.InvalidTokenError as e:
+        raise HTTPException(status_code=401, detail=f"Invalid token: {type(e).__name__}: {e}")
 
     user_id: str | None = payload.get("sub")
     if not user_id:
