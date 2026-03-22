@@ -11,6 +11,7 @@ import { AnalysisResultsScreen } from './src/screens/AnalysisResultsScreen';
 import { CreateVideoScreen } from './src/screens/CreateVideoScreen';
 import { HomeDashboardScreen } from './src/screens/HomeDashboardScreen';
 import { RecordVideoScreen } from './src/screens/RecordVideoScreen';
+import { CloudVideosScreen } from './src/screens/CloudVideosScreen';
 import { SavedVideosScreen } from './src/screens/SavedVideosScreen';
 import { UploadedVideoReviewScreen } from './src/screens/UploadedVideoReviewScreen';
 import { colors } from './src/theme';
@@ -91,6 +92,16 @@ export default function App() {
               title: 'Home',
               tabBarIcon: ({ color, size }) => (
                 <Ionicons name="home-outline" size={size} color={color} />
+              ),
+            }}
+          />
+          <Tab.Screen
+            name="Cloud"
+            component={CloudVideosScreen}
+            options={{
+              title: 'Cloud',
+              tabBarIcon: ({ color, size }) => (
+                <Ionicons name="cloud-outline" size={size} color={color} />
               ),
             }}
           />

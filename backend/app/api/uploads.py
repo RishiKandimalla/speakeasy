@@ -12,6 +12,23 @@ router = APIRouter()
 UPLOAD_BUCKET = "uploads"
 
 
+def _row_to_response(row: dict) -> UploadResponse:
+    video_url = storage_service.get_signed_url(row["bucket"], row["path"])
+    return UploadResponse(
+        upload_id=row["id"],
+        status=row["status"],
+        bucket=row["bucket"],
+        path=row["path"],
+        video_url=video_url,
+    )
+
+
+@router.get("/uploads", response_model=list[UploadResponse])
+def list_uploads():
+    rows = queries.list_uploads(limit=50)
+    return [_row_to_response(row) for row in rows]
+
+
 @router.post("/uploads", response_model=UploadResponse, status_code=201)
 async def create_upload(file: UploadFile = File(...)):
     upload_id = str(uuid.uuid4())
@@ -44,11 +61,4 @@ async def get_upload(upload_id: str):
     row = queries.get_upload(upload_id)
     if not row:
         raise HTTPException(status_code=404, detail="Upload not found")
-    video_url = storage_service.get_signed_url(row["bucket"], row["path"])
-    return UploadResponse(
-        upload_id=row["id"],
-        status=row["status"],
-        bucket=row["bucket"],
-        path=row["path"],
-        video_url=video_url,
-    )
+    return _row_to_response(row)
