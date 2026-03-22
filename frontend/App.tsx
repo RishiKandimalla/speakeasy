@@ -88,7 +88,7 @@ function HomeStackNavigator() {
         component={UploadedVideoReviewScreen}
         options={{ title: 'Review' }}
       />
-      <HomeStack.Screen name="AnalysisLoading" component={AnalysisLoadingScreen} />
+      <HomeStack.Screen name="AnalysisLoading" component={AnalysisLoadingScreen} options={{ headerShown: false }} />
       <HomeStack.Screen
         name="AnalysisResults"
         component={AnalysisResultsScreen}

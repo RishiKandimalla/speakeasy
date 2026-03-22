@@ -25,6 +25,34 @@ import { fontFamily, spacing } from '../theme';
 type Phase = 'idle' | 'recording' | 'preview';
 type Nav = NativeStackNavigationProp<HomeStackParamList, 'RecordVideo'>;
 
+const TOPICS = [
+  "What's a skill you've taught yourself in the last year?",
+  "Describe your dream weekend — no budget limits.",
+  "What's an opinion you hold that most people disagree with?",
+  "If you could swap careers for a month, what would you try?",
+  "What's the best advice you've ever ignored?",
+  "Tell me about a time you changed your mind about something important.",
+  "What's something you do differently from everyone around you?",
+  "If you had to give a 5-minute TED talk right now, what would it be about?",
+  "What's a small thing that brings you disproportionate joy?",
+  "Describe a challenge that turned out to be a gift in disguise.",
+  "What's a misconception people have about your field or hobby?",
+  "If you could master one skill overnight, what would you choose and why?",
+  "What's the most interesting place you've ever been?",
+  "What book, show, or movie changed how you see the world?",
+  "What's a goal you've been putting off — and what's really stopping you?",
+  "Best meal you've ever had.",
+  "A hill you'll die on.",
+  "Something you believed at 16 that you don't anymore.",
+  "Overrated vs. underrated: pick one thing for each.",
+  "What would you do with an extra hour every day?",
+  "Worst advice you've ever taken.",
+  "A word that describes you that people wouldn't expect.",
+  "What are you currently obsessed with?",
+  "One thing you wish you'd started sooner.",
+  "Hot take: go.",
+];
+
 const BG = '#2d2f2a';
 const RED = '#fb2c36';
 const OLIVE = '#5a6b40';
@@ -45,7 +73,14 @@ export function RecordVideoScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [uploadLabel, setUploadLabel] = useState('');
   const [elapsed, setElapsed] = useState(0);
+  const [topicHint, setTopicHint] = useState<string | null>(null);
   const waveAnims = useRef(WAVE_HEIGHTS.map(() => new Animated.Value(1))).current;
+
+  const pickTopic = () => {
+    const available = TOPICS.filter((t) => t !== topicHint);
+    const pick = available[Math.floor(Math.random() * available.length)];
+    setTopicHint(pick);
+  };
 
   useLayoutEffect(() => {
     navigation.setOptions({ headerShown: false });
@@ -264,6 +299,24 @@ export function RecordVideoScreen() {
           {/* Spacer — pushes idle controls to bottom */}
           {phase === 'idle' && <View style={{ flex: 1 }} />}
 
+          {/* Topic suggestion */}
+          {phase === 'idle' && (
+            <View style={styles.topicArea}>
+              {topicHint ? (
+                <View style={styles.topicCard}>
+                  <Text style={styles.topicText}>{topicHint}</Text>
+                  <Pressable onPress={pickTopic} hitSlop={8}>
+                    <Text style={styles.topicRefresh}>try another →</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <Pressable style={styles.topicBtn} onPress={pickTopic} hitSlop={8}>
+                  <Text style={styles.topicBtnText}>Stuck? Need a topic?</Text>
+                </Pressable>
+              )}
+            </View>
+          )}
+
           {/* Record / Stop button — absolute during recording, in-flow during idle */}
           <View
             style={
@@ -479,6 +532,47 @@ const styles = StyleSheet.create({
     width: 4,
     borderRadius: 2,
     backgroundColor: 'rgba(255,255,255,0.6)',
+  },
+
+  topicArea: {
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.md,
+  },
+  topicBtn: {
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 999,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xs + 2,
+  },
+  topicBtnText: {
+    fontFamily: fontFamily.body,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.5)',
+  },
+  topicCard: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 14,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    gap: spacing.xs,
+    maxWidth: 320,
+  },
+  topicText: {
+    fontFamily: fontFamily.body,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.75)',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  topicRefresh: {
+    fontFamily: fontFamily.bodyMedium,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.35)',
   },
 
   idleControls: {

@@ -36,6 +36,15 @@ function jobToResult(job: JobSummary): AnalysisResult {
   };
 }
 
+// Module-level cache keyed by user ID — survives navigation, cleared on app restart
+type ProfileCache = {
+  profile: ProfileData;
+  jobs: JobSummary[];
+  publicPosts: FeedPostResponse[];
+  reactionSummaries: Record<string, ReactionSummary>;
+};
+const profileCache: Record<string, ProfileCache> = {};
+
 function transcriptPreview(post: FeedPostResponse): string {
   const text = post.transcript_json?.text;
   if (typeof text === 'string' && text.trim()) {
@@ -62,16 +71,31 @@ export function ProfileScreen() {
 
   const isOwnProfile = routeUserId == null || (viewerProfile != null && routeUserId === viewerProfile.user_id);
 
+  const applyCache = useCallback((cacheKey: string) => {
+    const cached = profileCache[cacheKey];
+    if (!cached) return false;
+    setProfile(cached.profile);
+    setJobs(cached.jobs);
+    setPublicPosts(cached.publicPosts);
+    setReactionSummaries(cached.reactionSummaries);
+    return true;
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      setLoading(true);
+
       void (async () => {
         try {
           const me = await getMyProfile();
           if (cancelled) return;
           setViewerProfile(me);
           const targetUserId = routeUserId ?? me.user_id;
+          const cacheKey = targetUserId;
+          const hasCache = applyCache(cacheKey);
+          if (hasCache) setLoading(false);
+          else setLoading(true);
+
           const own = targetUserId === me.user_id;
           if (own) {
             const [userJobs, ownPosts] = await Promise.all([
@@ -79,8 +103,9 @@ export function ProfileScreen() {
               listUserPosts(targetUserId, 50),
             ]);
             if (cancelled) return;
+            const filteredJobs = userJobs.filter((job) => job.status === 'completed');
             setProfile(me);
-            setJobs(userJobs.filter((job) => job.status === 'completed'));
+            setJobs(filteredJobs);
             setPublicPosts([]);
 
             const summaries: Record<string, ReactionSummary> = {};
@@ -94,7 +119,9 @@ export function ProfileScreen() {
                 }
               }),
             );
-            if (!cancelled) setReactionSummaries(summaries);
+            if (cancelled) return;
+            setReactionSummaries(summaries);
+            profileCache[cacheKey] = { profile: me, jobs: filteredJobs, publicPosts: [], reactionSummaries: summaries };
           } else {
             const [targetProfile, posts] = await Promise.all([
               getProfile(targetUserId),
@@ -105,6 +132,7 @@ export function ProfileScreen() {
             setPublicPosts(posts);
             setJobs([]);
             setReactionSummaries({});
+            profileCache[cacheKey] = { profile: targetProfile, jobs: [], publicPosts: posts, reactionSummaries: {} };
           }
         } catch (e) {
           if (!cancelled) {
@@ -119,7 +147,7 @@ export function ProfileScreen() {
       return () => {
         cancelled = true;
       };
-    }, [routeUserId]),
+    }, [routeUserId, applyCache]),
   );
 
   const handlePublish = useCallback(async (jobId: string) => {
@@ -127,7 +155,12 @@ export function ProfileScreen() {
     setPublishingJobId(jobId);
     try {
       await publishPost(jobId);
-      setJobs((prev) => prev.map((job) => (job.job_id === jobId ? { ...job, is_public: true } : job)));
+      setJobs((prev) => {
+        const updated = prev.map((job) => (job.job_id === jobId ? { ...job, is_public: true } : job));
+        // Invalidate cache so next focus re-fetches fresh data
+        if (viewerProfile) delete profileCache[viewerProfile.user_id];
+        return updated;
+      });
     } catch (e) {
       Alert.alert('Could not publish post', String(e));
     } finally {

@@ -101,13 +101,15 @@ const sh = StyleSheet.create({
 function LiveBar({
   sentence,
   index,
+  sentenceTone,
 }: {
   sentence: Sentence | null;
   index: number;
+  sentenceTone: import('../types/analysis').SentenceTone;
 }) {
   const wpm = sentence?.wpm ?? 0;
-  const conf = sentence?.tone?.confidence ?? null;
-  const energy = sentence?.tone?.energy ?? null;
+  const conf = sentenceTone?.confidence ?? sentence?.tone?.confidence ?? null;
+  const energy = sentenceTone?.energy ?? sentence?.tone?.energy ?? null;
 
   const wpmPct = clamp((wpm / 200) * 100, 0, 100);
   const confPct = conf != null ? clamp(conf * 100, 0, 100) : null;
@@ -125,24 +127,13 @@ function LiveBar({
         </View>
         <Text style={[lb.barVal, { color: wpmColor }]}>{wpm > 0 ? `${Math.round(wpm)} wpm` : '—'}</Text>
       </View>
-      {confPct != null && (
-        <View style={lb.bar}>
-          <Text style={lb.barLabel}>Confidence</Text>
-          <View style={lb.track}>
-            <View style={[lb.fill, { width: `${confPct}%` as any, backgroundColor: colors.info }]} />
-          </View>
-          <Text style={[lb.barVal, { color: colors.info }]}>{Math.round(confPct)}%</Text>
+      <View style={lb.bar}>
+        <Text style={lb.barLabel}>Confidence</Text>
+        <View style={lb.track}>
+          <View style={[lb.fill, { width: `${confPct ?? 0}%` as any, backgroundColor: colors.info }]} />
         </View>
-      )}
-      {energyPct != null && (
-        <View style={lb.bar}>
-          <Text style={lb.barLabel}>Energy</Text>
-          <View style={lb.track}>
-            <View style={[lb.fill, { width: `${energyPct}%` as any, backgroundColor: colors.primaryMuted }]} />
-          </View>
-          <Text style={[lb.barVal, { color: colors.primaryMuted }]}>{Math.round(energyPct)}%</Text>
-        </View>
-      )}
+        <Text style={[lb.barVal, { color: colors.info }]}>{confPct != null ? `${Math.round(confPct)}%` : '—'}</Text>
+      </View>
     </View>
   );
 }
@@ -183,12 +174,20 @@ export function AnalysisResultsScreen({
 
   const player = useVideoPlayer(videoUri ?? '', (p) => {
     p.loop = false;
+    p.allowsExternalPlayback = false;
   });
 
   const [currentTime, setCurrentTime] = useState(0);
   const [isLockedUntilEnd, setIsLockedUntilEnd] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const itemYMap = useRef<Record<number, number>>({});
+
+  // Auto-play video when it's ready
+  useEffect(() => {
+    if (videoUri && player) {
+      player.play();
+    }
+  }, [player, videoUri]);
 
   // Poll video position every 300ms
   useEffect(() => {
@@ -225,16 +224,15 @@ export function AnalysisResultsScreen({
     }
   }, [activeSentenceIdx]);
 
+  // Check if video has been watched to the end
+  const hasWatchedToEnd = isLockedUntilEnd
+    ? (player.currentTime ?? currentTime ?? 0) + 0.5 >= (player.duration ?? result.metrics?.duration ?? 0)
+    : true;
+
   const goToSummary = useCallback(() => {
-    // only allow navigation if not locked or if we've reached end
-    if (isLockedUntilEnd) {
-      const duration = player.duration ?? result.metrics?.duration ?? 0;
-      const current = player.currentTime ?? currentTime ?? 0;
-      // allow small epsilon for timing
-      if (duration > 0 && current + 0.5 < duration) return;
-    }
+    if (!hasWatchedToEnd) return;
     navigation.navigate('AnalysisSummary', { result });
-  }, [navigation, result, isLockedUntilEnd, player, currentTime]);
+  }, [navigation, result, hasWatchedToEnd]);
 
   return (
     <View style={styles.root}>
@@ -242,7 +240,7 @@ export function AnalysisResultsScreen({
       {videoUri ? (
         <View style={styles.videoOuter}>
           <View style={styles.videoWrap}>
-            <VideoView player={player} style={styles.video} nativeControls />
+            <VideoView player={player} style={styles.video} nativeControls={false} />
           </View>
         </View>
       ) : (
@@ -261,7 +259,11 @@ export function AnalysisResultsScreen({
         {/* Live analytics header */}
         <SectionHeader title="Live analytics" />
 
-        <LiveBar sentence={activeSentence} index={activeSentenceIdx} />
+        <LiveBar
+          sentence={activeSentence}
+          index={activeSentenceIdx}
+          sentenceTone={activeSentenceIdx >= 0 ? (result.tone?.sentences_tone[activeSentenceIdx] ?? null) : null}
+        />
 
         {/* Live feedback feed */}
         <SectionHeader title="Live feedback from AI" sub="Synced to video" />
@@ -286,12 +288,14 @@ export function AnalysisResultsScreen({
         </View>
 
         <Pressable
-          style={[styles.skipBtn, isLockedUntilEnd && styles.skipBtnLocked]}
+          style={[styles.skipBtn, hasWatchedToEnd ? styles.skipBtnEnabled : styles.skipBtnDisabled]}
           onPress={goToSummary}
-          disabled={isLockedUntilEnd && ((player.currentTime ?? currentTime) + 0.5 < (player.duration ?? (result.metrics?.duration ?? 0)))}
+          disabled={!hasWatchedToEnd}
         >
-          <Text style={styles.skipText}>{isLockedUntilEnd ? 'Watch full video to view results' : 'View results'}</Text>
-          <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+          <Text style={[styles.skipText, hasWatchedToEnd ? styles.skipTextEnabled : styles.skipTextDisabled]}>
+            {!hasWatchedToEnd ? 'Watch full video to view results' : 'View results'}
+          </Text>
+          {hasWatchedToEnd && <Ionicons name="chevron-forward" size={14} color={colors.background} />}
         </Pressable>
       </ScrollView>
     </View>
@@ -309,7 +313,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   videoWrap: {
-    height: 260,
+    height: 360,
     aspectRatio: 9 / 16,
     borderRadius: radius.md,
     overflow: 'hidden',
@@ -335,11 +339,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs,
+    gap: spacing.sm,
     paddingVertical: spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    paddingHorizontal: spacing.lg,
+    marginHorizontal: spacing.lg,
+    marginVertical: spacing.lg,
+    borderRadius: radius.md,
+    backgroundColor: colors.card,
+    borderTopWidth: 0,
+    borderTopColor: 'transparent',
   },
-  skipBtnLocked: { opacity: 0.45 },
-  skipText: { ...typography.caption, color: colors.textMuted },
+  skipBtnDisabled: { 
+    opacity: 0.5,
+    backgroundColor: colors.card,
+  },
+  skipBtnEnabled: {
+    backgroundColor: colors.primary,
+  },
+  skipText: { ...typography.caption, color: colors.textMuted, fontWeight: '500' },
+  skipTextDisabled: { color: colors.textMuted },
+  skipTextEnabled: { color: colors.background, fontWeight: '600' },
 });

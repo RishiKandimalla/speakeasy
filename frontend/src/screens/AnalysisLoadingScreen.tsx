@@ -69,11 +69,8 @@ export function AnalysisLoadingScreen({
           <ActivityIndicator size="large" color={colors.primary} />
         )}
       </View>
-      <Text style={styles.title} numberOfLines={1}>
-        {error ? 'Analysis failed' : 'Analyzing your session'}
-      </Text>
       <Text style={styles.sub} numberOfLines={2}>
-        {error ?? stageLabel}
+        {error ? 'Analysis failed' : error ?? stageLabel}
       </Text>
       {!error && (
         <>
@@ -99,7 +96,7 @@ const styles = StyleSheet.create({
     width: 84,
     height: 84,
     borderRadius: 42,
-    backgroundColor: colors.card,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
@@ -109,16 +106,12 @@ const styles = StyleSheet.create({
     fontSize: 32,
     color: colors.danger,
   },
-  title: {
-    ...typography.headline,
+  sub: {
+    ...typography.body,
     color: colors.text,
     marginTop: spacing.lg,
-  },
-  sub: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: spacing.sm,
     textAlign: 'center',
+    fontSize: 16,
   },
   progressBar: {
     width: '100%',

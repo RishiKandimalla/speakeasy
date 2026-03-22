@@ -63,6 +63,13 @@ function scoreLabel(v: number) {
   return 'Needs work';
 }
 
+function scoreColor(v: number) {
+  if (v >= 85) return '#3D9E41';   // green
+  if (v >= 70) return '#7AB33A';   // greenish yellow
+  if (v >= 55) return '#F5E47A';   // pastel yellow
+  return '#E05A35';                // red-orange for needs work
+}
+
 function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
 }
@@ -203,7 +210,7 @@ function HeroCard({ result }: { result: AnalysisResult }) {
   const energy = tone ? Math.round((tone.overall?.energy ?? 0) * 100) : null;
 
   return (
-    <View style={hero.card}>
+    <View style={[hero.card, { backgroundColor: scoreColor(overall) }]}>
       <Text style={hero.scoreLabel}>Overall score</Text>
       <Text style={hero.score}>{overall}</Text>
 

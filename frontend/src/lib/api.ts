@@ -133,6 +133,7 @@ export type UserStats = {
     confidence: number | null;
     energy: number | null;
   }>;
+  weekly_reaction_points: number;
 };
 
 export async function getMyStats(): Promise<UserStats> {
@@ -181,6 +182,7 @@ export type JobSummary = {
 
 export type FeedPostResponse = {
   post_id: string;
+  user_id: string;
   username: string;
   audio_url: string;
   transcript_json: Record<string, unknown>;
@@ -217,6 +219,37 @@ export async function listPublicFeed(limit = 20): Promise<FeedPostResponse[]> {
   const headers = await getAuthHeaders();
   const res = await fetch(`${API_BASE}/v1/feed/public?limit=${limit}`, { headers });
   return parseJsonOrThrow(res) as Promise<FeedPostResponse[]>;
+}
+
+export async function listFollowingFeed(limit = 20): Promise<FeedPostResponse[]> {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/v1/feed/following?limit=${limit}`, { headers });
+  return parseJsonOrThrow(res) as Promise<FeedPostResponse[]>;
+}
+
+export async function followUser(userId: string): Promise<void> {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/v1/profile/${userId}/follow`, {
+    method: 'POST',
+    headers: { ...headers, 'Content-Type': 'application/json' },
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Follow failed: ${res.status} ${body}`);
+  }
+}
+
+export async function unfollowUser(userId: string): Promise<void> {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/v1/profile/${userId}/follow`, { method: 'DELETE', headers });
+  if (!res.ok) throw new Error(`Unfollow failed: ${res.status}`);
+}
+
+export async function getMyFollowingIds(): Promise<string[]> {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}/v1/profile/me/following`, { headers });
+  const profiles = await parseJsonOrThrow(res) as Array<{ user_id: string }>;
+  return profiles.map((p) => p.user_id);
 }
 
 export async function listClips(category: ClipCategory = 'both'): Promise<ClipResponse[]> {

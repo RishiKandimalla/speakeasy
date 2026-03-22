@@ -22,7 +22,9 @@ import {
   ClipResponse,
   EMOJI_DISPLAY,
   FeedPostResponse,
+  getMyProfile,
   listClips,
+  listFollowingFeed,
   listPublicFeed,
   REACTION_EMOJIS,
   type ReactionEmoji,
@@ -455,6 +457,8 @@ function FeedVideoItem({
 // FeedScreen
 // ---------------------------------------------------------------------------
 
+type FeedTab = 'For You' | 'Following';
+
 export function FeedScreen() {
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
@@ -465,12 +469,14 @@ export function FeedScreen() {
 
   const isFocused = useIsFocused();
 
+  const [activeTab, setActiveTab] = useState<FeedTab>('For You');
   const [sourcePosts, setSourcePosts] = useState<FeedPostResponse[]>([]);
   const [sourceClips, setSourceClips] = useState<ClipResponse[]>([]);
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [visibleIndex, setVisibleIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [myUserId, setMyUserId] = useState<string | null>(null);
 
   const instanceCounterRef = useRef(0);
   const loadingMoreRef = useRef(false);
@@ -492,12 +498,17 @@ export function FeedScreen() {
     [],
   );
 
-  const loadInitial = useCallback(async () => {
+  const loadInitial = useCallback(async (tab: FeedTab) => {
     setLoading(true);
     setError(null);
     try {
-      const [posts, clips] = await Promise.all([listPublicFeed(BATCH_SIZE), listClips('both')]);
-      setSourcePosts(posts);
+      const [posts, clips, me] = await Promise.all([
+        tab === 'Following' ? listFollowingFeed(BATCH_SIZE) : listPublicFeed(BATCH_SIZE),
+        listClips('both'),
+        getMyProfile(),
+      ]);
+      setMyUserId(me.user_id);
+      setSourcePosts(posts.filter((p) => p.user_id !== me.user_id));
       setSourceClips(clips);
       instanceCounterRef.current = 0;
       if (!posts.length) {
@@ -506,7 +517,9 @@ export function FeedScreen() {
         return;
       }
       const firstBatch = createBatch(posts, clips);
-      const secondBatch = createBatch(posts, clips, firstBatch[firstBatch.length - 1]?.post_id);
+      const secondBatch = tab === 'Following'
+        ? []
+        : createBatch(posts, clips, firstBatch[firstBatch.length - 1]?.post_id);
       setFeed([...firstBatch, ...secondBatch]);
       setVisibleIndex(0);
     } catch (e) {
@@ -522,9 +535,15 @@ export function FeedScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      void loadInitial();
+      void loadInitial(activeTab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [loadInitial]),
   );
+
+  useEffect(() => {
+    void loadInitial(activeTab);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   useEffect(() => {
     if (!feed.length) return;
@@ -556,13 +575,31 @@ export function FeedScreen() {
 
   const renderItem = useCallback(
     ({ item, index }: ListRenderItemInfo<FeedItem>) => (
-      <FeedVideoItem item={item} shouldPlay={isFocused && index === visibleIndex} height={pageHeight} />
+      <FeedVideoItem
+        item={item}
+        shouldPlay={isFocused && index === visibleIndex}
+        height={pageHeight}
+      />
     ),
     [isFocused, pageHeight, visibleIndex],
   );
 
   return (
     <View style={styles.root}>
+      {/* Tab bar */}
+      <View style={[styles.tabBar, { top: insets.top + 8 }]}>
+        {(['For You', 'Following'] as FeedTab[]).map((tab) => (
+          <Pressable
+            key={tab}
+            onPress={() => setActiveTab(tab)}
+            style={styles.tabItem}
+          >
+            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
+            {activeTab === tab && <View style={styles.tabUnderline} />}
+          </Pressable>
+        ))}
+      </View>
+
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -575,13 +612,16 @@ export function FeedScreen() {
         </View>
       ) : !feed.length ? (
         <View style={styles.center}>
-          <Text style={styles.centerText}>No public posts are available yet.</Text>
+          <Text style={styles.centerText}>
+            {activeTab === 'Following' ? 'Follow some people to see their posts here.' : 'No public posts are available yet.'}
+          </Text>
         </View>
       ) : (
         <FlatList
           data={feed}
           keyExtractor={(item) => item.instanceKey}
           renderItem={renderItem}
+
           pagingEnabled
           snapToInterval={pageHeight}
           snapToAlignment="start"
@@ -620,10 +660,40 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
   },
 
+  // Tab bar
+  tabBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    zIndex: 10,
+    gap: spacing.xxl,
+  },
+  tabItem: {
+    alignItems: 'center',
+    paddingBottom: 4,
+  },
+  tabText: {
+    fontSize: 16,
+    fontFamily: fontFamily.bodySemiBold,
+    color: 'rgba(255,255,255,0.5)',
+  },
+  tabTextActive: {
+    color: '#fff',
+  },
+  tabUnderline: {
+    marginTop: 3,
+    height: 2,
+    width: '100%',
+    backgroundColor: '#fff',
+    borderRadius: 1,
+  },
+
   // User header (top-left)
   userHeader: {
     position: 'absolute',
-    top: 66,
+    top: 110,
     left: spacing.xl,
     flexDirection: 'row',
     alignItems: 'center',
